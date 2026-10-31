@@ -56,7 +56,8 @@ implementation is done through WHATWG notes.
 Before `1.0.0`, every minor version (`0.THIS.0`) bump *may* be a breaking change
 for the dependent code using this library.
 
-See the `CHANGELOG` file in the source for the news about each release.
+See the [`CHANGELOG`](./CHANGELOG.md) file in the source for the news about each
+release.
 
 ## License
 
