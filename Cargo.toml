@@ -1,6 +1,6 @@
 [package]
 name = "constrs"
-version = "0.1.0"
+version = "0.1.1"
 description = "A low-level collection of no alloc, `const`-time one-pass parsers, encoders and formatters"
 edition = "2024"
 rust-version = "1.85" # technically much lower, but aim is for 2024

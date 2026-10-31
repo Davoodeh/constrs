@@ -739,7 +739,7 @@ pub mod usize {
         }
     }
 
-    decode_fns!(u16);
+    decode_fns!(usize);
 }
 
 /// Helpers for [`prim@u16`].
