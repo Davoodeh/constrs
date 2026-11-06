@@ -796,6 +796,7 @@ pub mod u128 {
     ];
 
     fn_digits!(u128);
+
     decode_fns!(u128);
 }
 
