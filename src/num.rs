@@ -897,6 +897,22 @@ pub mod f64 {
 mod tests {
     use super::*;
 
+    #[test]
+    fn le_prefix() {
+        assert_eq!(
+            u32::le_prefix(&[0xDE, 0xAD, 0xBE, 0xEF, 0x01, 0xFE]),
+            Some(0xEFBE_ADDE),
+        );
+    }
+
+    #[test]
+    fn be_prefix() {
+        assert_eq!(
+            u32::be_prefix(&[0xEF, 0xBE, 0xAD, 0xDE, 0x01, 0xFE]),
+            Some(0xEFBE_ADDE),
+        );
+    }
+
     mod encode_u8 {
         use super::*;
 
