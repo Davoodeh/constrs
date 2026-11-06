@@ -399,6 +399,7 @@ macro_rules! decode_fns {
 }
 
 /// Impl `le_prefix` and `be_prefix` endianness functions for given types.
+// TODO add *e_postfix, *e_range, *e_range_inclusive
 macro_rules! endian_fns {
     ($ty:ty) => {
         #[doc = concat!("Run [`", stringify!($ty), "::from_le_bytes`] on the start of the string.")]
