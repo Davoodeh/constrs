@@ -166,6 +166,8 @@ pub mod host {
 
 /// Helpers for URL paths (e.g. `scheme://somehost/path/and/the/rest/of/it`).
 pub mod path {
+    use crate::slice;
+
     use super::Unit;
 
     /// Get as far as possible into the string and return the length of "path string" at the start.
@@ -286,18 +288,18 @@ pub mod path {
 
     /// Same as [`any_prefix_len`] (see for more) but ensures the URL starts with a "/".
     pub const fn absolute_prefix_len(s: &[u8]) -> usize {
-        if s.is_empty() || s[0] != b'/' {
-            return 0;
+        match slice::first(s) {
+            Some(&b'/') => any_prefix_len(s),
+            _ => 0,
         }
-        any_prefix_len(s)
     }
 
     /// Same as [`any_prefix_len`] (see for more) but ensures the URL starts without a "/".
     #[doc(alias("opaque_prefix_len"))]
     pub const fn relative_prefix_len(s: &[u8]) -> usize {
-        if s.is_empty() || s[0] == b'/' {
-            return 0;
+        match slice::first(s) {
+            Some(&b'/') | None => 0,
+            _ => any_prefix_len(s),
         }
-        any_prefix_len(s)
     }
 }

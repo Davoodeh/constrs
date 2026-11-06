@@ -4,7 +4,7 @@
 pub mod v4 {
     pub use core::net::Ipv4Addr as Addr;
 
-    use crate::num;
+    use crate::{num, slice};
 
     /// If true, the candidate must be parsed with the [`parse`] function.
     ///
@@ -68,10 +68,7 @@ pub mod v4 {
             None => return false,
         };
 
-        // &s[start..end] in const
-        let part = s.split_at(start).1.split_at(end - start).0;
-
-        match number(part) {
+        match number(slice::range_get(s, start, end)) {
             Ok(_) => true,
             Err(NumberError::Empty) => false, // recoverable but explicitly not permitted
             Err(NumberError::NonDecimal(_, _)) | Err(NumberError::OutOfRange) => true,
@@ -436,10 +433,7 @@ pub mod v4 {
                 // this error check allows for TooManyParts to be reported correctly even
                 // if sees problematic parts
                 if error.is_none() {
-                    // no &s[piece_start..pointer] in const fn
-                    let part = s.split_at(piece_start).1.split_at(pointer - piece_start).0;
-                    // no ? in const fn
-                    match number(part) {
+                    match number(slice::range_get(s, piece_start, pointer)) {
                         Ok(v) => address[piece_index] = v,
                         Err(e) => error = Some(Error::Number(piece_index, e)),
                     }
@@ -470,6 +464,8 @@ pub mod v4 {
 /// Holds IPv6 parsers and utilities.
 pub mod v6 {
     pub use core::net::Ipv6Addr as Addr;
+
+    use crate::slice;
 
     /// Errors produced when [`parse`] is called on an invalid IPv6.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -766,39 +762,34 @@ pub mod v6 {
     }
 
     /// [`parse`] when input is surrounded by "[" and "]" or [`None`] if "[" is not seen.
-    pub const fn bracketed(mut s: &[u8]) -> Option<Result<Addr, Error>> {
-        if (!s.is_empty()) && s[0] == b'[' {
-            if s[s.len() - 1] != b']' {
-                return Some(Err(Error::Unclosed));
-            }
-            // &s[1..(s.len() - 1)] not in const fn
-            s = s.split_at(1).1.split_at((s.len() - 1) - 1).0;
+    pub const fn bracketed(s: &[u8]) -> Option<Result<Addr, Error>> {
+        let Some(&b'[') = slice::first(s) else {
+            return None; // if not starting with b'[' do nothing
+        };
+        let Some(&b']') = slice::last(s) else {
+            return Some(Err(Error::Unclosed));
+        };
 
-            // no ? in const fn
-            return Some(parse(s));
-        }
-        None
+        Some(parse(slice::range_get(s, 1, s.len() - 1)))
     }
 
     /// [`parse`] from the start of the string "[" until the first "]" and return the length.
-    pub const fn bracketed_prefix(mut s: &[u8]) -> Option<Result<(Addr, usize), Error>> {
-        if s.is_empty() || s[0] != b'[' {
+    pub const fn bracketed_prefix(s: &[u8]) -> Option<Result<(Addr, usize), Error>> {
+        let Some(&b'[') = slice::first(s) else {
             return None;
-        }
+        };
 
         let mut i = 0;
-        while i < s.len() && s[i] != b']' {
+        while let Some(c) = slice::get(s, i) && *c != b']' {
             i += 1;
         }
-        if s[i] == b']' {
-            // &s[1..(s.len() - 1)] not in const fn
-            s = s.split_at(1).1.split_at((i - 1) - 1).0;
-            return Some(match parse(s) {
-                Ok(v) => Ok((v, s.len())),
-                Err(e) => Err(e),
-            });
-        }
+        Some(match slice::get(s, i) {
+            Some(&b']') => match parse(slice::range_get(s, 1, i - 1)) {
+                    Ok(v) => Ok((v, s.len())),
+                    Err(e) => Err(e),
+                },
+            _ => Err(Error::Unclosed),
+        })
 
-        Some(Err(Error::Unclosed))
     }
 }

@@ -7,3 +7,4 @@ pub mod num;
 pub mod percent_encoding;
 pub mod url;
 pub mod utf8;
+pub mod slice;
