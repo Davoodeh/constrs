@@ -1,0 +1,40 @@
+exclude = "^target/"
+
+[[repos]]
+repo = "local"
+
+hooks = [
+  {
+    id = "clippy",
+    name = "clippy",
+    language = "system",
+    entry = "cargo clippy -- -Dwarnings",
+    files = { glob = ["src/**/*.rs", "**/Cargo.toml"] },
+    pass_filenames = false,
+  },
+  {
+    id = "cargo-fmt",
+    name = "cargo-fmt",
+    language = "system",
+    entry = "cargo fmt --check",
+    files = { glob = ["src/**/*.rs", "Cargo.toml"] },
+    pass_filenames = false,
+  },
+  {
+    id = "cargo-test",
+    name = "cargo-test",
+    language = "system",
+    entry = "cargo test",
+    files = { glob = ["src/**/*.rs", "**/Cargo.toml"] },
+    pass_filenames = false,
+  },
+  {
+    id = "cargo-doc",
+    name = "cargo-doc",
+    language = "system",
+    entry = "cargo doc --no-deps",
+    env = { RUSTDOCFLAGS = "-Dwarnings" },
+    files = { glob = ["src/**/*.rs", "**/Cargo.toml"] },
+    pass_filenames = false,
+  },
+]

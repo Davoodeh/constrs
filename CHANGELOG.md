@@ -1,3 +1,14 @@
+# `0.1.3`
+
+## Fix
+
+- `slice` functions with `*_mut` postfix not being mutable.
+
+## Add
+
+- enforments and hooks using `prek` to prevent unhappy clippy, `fmt` or other
+  `mut` mistakes.
+
 # `0.1.2`
 
 ## Add

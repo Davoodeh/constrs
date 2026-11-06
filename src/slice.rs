@@ -21,7 +21,7 @@ pub const fn get<T>(s: &[T], index: usize) -> Option<&T> {
 ///
 /// [slice primitive `get` method]:
 /// https://doc.rust-lang.org/core/primitive.slice.html#method.get
-pub const fn get_mut<T>(s: &mut [T], index: usize) -> Option<&T> {
+pub const fn get_mut<T>(s: &mut [T], index: usize) -> Option<&mut T> {
     if index < s.len() {
         return Some(&mut s[index]);
     }
@@ -37,7 +37,7 @@ pub const fn first<T>(s: &[T]) -> Option<&T> {
 }
 
 /// Get the first slice element, uncoditionally const (mutable).
-pub const fn first_mut<T>(s: &mut [T]) -> Option<&T> {
+pub const fn first_mut<T>(s: &mut [T]) -> Option<&mut T> {
     if s.is_empty() {
         return None;
     }
@@ -53,7 +53,7 @@ pub const fn last<T>(s: &[T]) -> Option<&T> {
 }
 
 /// Get the last slice element, uncoditionally const (mutable).
-pub const fn last_mut<T>(s: &mut [T]) -> Option<&T> {
+pub const fn last_mut<T>(s: &mut [T]) -> Option<&mut T> {
     if s.is_empty() {
         return None;
     }
@@ -64,7 +64,7 @@ pub const fn last_mut<T>(s: &mut [T]) -> Option<&T> {
 ///
 /// To include the `end` (`&s[start..=end]`), use [`range_inclusive_get`]. There is no
 /// `range_to_get` (`&s[..end]`). Use this function with a `start = 0` or see
-/// [`core::slice::split_at`].
+/// [`[]::split_at`].
 ///
 /// # Panics
 ///
@@ -107,7 +107,7 @@ pub const fn range_get<T>(s: &[T], start: usize, end: usize) -> &[T] {
 /// Return `&s[start..=end]` in const.
 ///
 /// To exclude the `end` (`&s[start..end]`), use [`range_get`]. There is no `range_to_get`
-/// (`&s[..=end]`). Use this function with a `start = 0` or see [`core::slice::split_at`].
+/// (`&s[..=end]`). Use this function with a `start = 0` or see [`[]::split_at`].
 ///
 /// # Panics
 ///

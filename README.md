@@ -59,6 +59,13 @@ for the dependent code using this library.
 See the [`CHANGELOG`](./CHANGELOG.md) file in the source for the news about each
 release.
 
+## Contribution
+
+This repository uses `prek` for commits and quality check.  Install `prek` with
+`cargo install prek` or any other way suited and make sure to install its
+configurations on the repository with `prek install` before commiting any
+changes.
+
 ## License
 
 The license of this crate and its components is exactly as described in the

@@ -213,11 +213,9 @@ pub mod v4 {
                 Self::Hex => "expected a decimal number but received a hexadecimal \
                                 (prefixed with '0x' or '0X')"
                     .fmt(f),
-                Self::EmptyHex => {
-                    "expected a decimal number but received an empty hexadecimal \
+                Self::EmptyHex => "expected a decimal number but received an empty hexadecimal \
                         ('0x' or '0X')"
-                        .fmt(f)
-                }
+                    .fmt(f),
                 Self::Oct => "expected a decimal number but received an octal number \
                                 (prefixed with an extra zero like '012')"
                     .fmt(f),
@@ -780,16 +778,17 @@ pub mod v6 {
         };
 
         let mut i = 0;
-        while let Some(c) = slice::get(s, i) && *c != b']' {
+        while let Some(c) = slice::get(s, i)
+            && *c != b']'
+        {
             i += 1;
         }
         Some(match slice::get(s, i) {
             Some(&b']') => match parse(slice::range_get(s, 1, i - 1)) {
-                    Ok(v) => Ok((v, s.len())),
-                    Err(e) => Err(e),
-                },
+                Ok(v) => Ok((v, s.len())),
+                Err(e) => Err(e),
+            },
             _ => Err(Error::Unclosed),
         })
-
     }
 }

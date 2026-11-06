@@ -130,11 +130,7 @@ pub const fn digit(c: u8, radix: u8) -> Option<u8> {
     } else {
         c.wrapping_sub(b'0')
     };
-    if value < radix {
-        Some(value)
-    } else {
-        None
-    }
+    if value < radix { Some(value) } else { None }
 }
 
 /// [`char::to_digit`] without any of its checks.

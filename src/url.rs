@@ -2,7 +2,7 @@
 
 // TODO add uts46 and domain parser
 
-use crate::{utf8, percent_encoding};
+use crate::{percent_encoding, utf8};
 
 /// Match a [URL codepoint] as in [`is_codepoint`] but only in the ASCII range.
 ///
@@ -40,7 +40,6 @@ pub const fn is_codepoint(c: char) -> bool {
         _ => false,
     }
 }
-
 
 /// Represents a [URL unit].
 ///
