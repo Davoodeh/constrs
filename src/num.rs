@@ -746,6 +746,13 @@ pub mod u8 {
     endian_fns!(u8);
 }
 
+/// Helpers for [`prim@i8`].
+pub mod i8 {
+    use super::*;
+
+    endian_fns!(i8);
+}
+
 /// Helpers for [`prim@usize`].
 pub mod usize {
     use super::*;
@@ -775,6 +782,13 @@ pub mod usize {
     endian_fns!(usize);
 }
 
+/// Helpers for [`prim@isize`].
+pub mod isize {
+    use super::*;
+
+    endian_fns!(isize);
+}
+
 /// Helpers for [`prim@u16`].
 ///
 /// [`u16::prefix`] in this module is almost euqal to [port state] parser (knowing it accepts
@@ -794,6 +808,13 @@ pub mod u16 {
     endian_fns!(u16);
 }
 
+/// Helpers for [`prim@i16`].
+pub mod i16 {
+    use super::*;
+
+    endian_fns!(i16);
+}
+
 /// Helpers for [`prim@u32`].
 pub mod u32 {
     use super::*;
@@ -807,6 +828,13 @@ pub mod u32 {
     decode_fns!(u32);
 
     endian_fns!(u32);
+}
+
+/// Helpers for [`prim@i32`].
+pub mod i32 {
+    use super::*;
+
+    endian_fns!(i32);
 }
 
 /// Helpers for [`prim@u64`].
@@ -825,6 +853,13 @@ pub mod u64 {
     endian_fns!(u64);
 }
 
+/// Helpers for [`prim@i64`].
+pub mod i64 {
+    use super::*;
+
+    endian_fns!(i64);
+}
+
 /// Helpers for [`prim@u128`].
 pub mod u128 {
     use super::*;
@@ -839,6 +874,27 @@ pub mod u128 {
     decode_fns!(u128);
 
     endian_fns!(u128);
+}
+
+/// Helpers for [`prim@i128`].
+pub mod i128 {
+    use super::*;
+
+    endian_fns!(i128);
+}
+
+/// Helpers for [`prim@f32`].
+pub mod f32 {
+    use super::*;
+
+    endian_fns!(f32);
+}
+
+/// Helpers for [`prim@f64`].
+pub mod f64 {
+    use super::*;
+
+    endian_fns!(f64);
 }
 
 #[cfg(test)]
