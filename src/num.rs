@@ -402,6 +402,35 @@ macro_rules! decode_fns {
     };
 }
 
+/// Impl `le_prefix` and `be_prefix` endianness functions for given types.
+macro_rules! endian_fns {
+    ($ty:ty) => {
+        #[doc = concat!("Run [`", stringify!($ty), "::from_le_bytes`] on the start of the string.")]
+        ///
+        /// This ignores beyond the number of bytes required to form the number, if the length must
+        /// match the exact number of bytes (a "residue" must not exist), just use the standard
+        /// function.
+        pub const fn le_prefix(s: &[u8]) -> Option<$ty> {
+            let Some((raw, _)) = s.split_first_chunk() else {
+                return None;
+            };
+            Some(<$ty>::from_le_bytes(*raw))
+        }
+
+        #[doc = concat!("Run [`", stringify!($ty), "::from_be_bytes`] on the start of the string.")]
+        ///
+        /// This ignores beyond the number of bytes required to form the number, if the length must
+        /// match the exact number of bytes (a "residue" must not exist), just use the standard
+        /// function.
+        pub const fn be_prefix(s: &[u8]) -> Option<$ty> {
+            let Some((raw, _)) = s.split_first_chunk() else {
+                return None;
+            };
+            Some(<$ty>::from_be_bytes(*raw))
+        }
+    };
+}
+
 /// Helpers for [`prim@u8`].
 pub mod u8 {
     use super::*;
@@ -713,6 +742,8 @@ pub mod u8 {
     pub const fn strict(s: &[u8], radix: u8) -> Option<u8> {
         strict!(u8, s, radix)
     }
+
+    endian_fns!(u8);
 }
 
 /// Helpers for [`prim@usize`].
@@ -740,6 +771,8 @@ pub mod usize {
     }
 
     decode_fns!(usize);
+
+    endian_fns!(usize);
 }
 
 /// Helpers for [`prim@u16`].
@@ -757,6 +790,8 @@ pub mod u16 {
     fn_digits!(u16);
 
     decode_fns!(u16);
+
+    endian_fns!(u16);
 }
 
 /// Helpers for [`prim@u32`].
@@ -770,6 +805,8 @@ pub mod u32 {
     fn_digits!(u32);
 
     decode_fns!(u32);
+
+    endian_fns!(u32);
 }
 
 /// Helpers for [`prim@u64`].
@@ -784,6 +821,8 @@ pub mod u64 {
     fn_digits!(u64);
 
     decode_fns!(u64);
+
+    endian_fns!(u64);
 }
 
 /// Helpers for [`prim@u128`].
@@ -798,6 +837,8 @@ pub mod u128 {
     fn_digits!(u128);
 
     decode_fns!(u128);
+
+    endian_fns!(u128);
 }
 
 #[cfg(test)]
