@@ -176,3 +176,32 @@ pub const unsafe fn range_inclusive_get_unchecked<T>(s: &[T], start: usize, end:
     // SAFETY: caller already promised validity
     unsafe { range_get_unchecked(s, start, end.unchecked_add(1)) }
 }
+
+/// Split a chunk at the given index.
+///
+/// If the given index is too late in the given array that taking a chunk is impossible returns
+/// [`None`].
+///
+/// Alternatively, if the given index is out of bound, it returns [`None`].
+///
+/// # Examples
+///
+/// ```rust
+/// # use constrs::slice::split_at_chunk;
+/// assert_eq!(split_at_chunk::<_, 0>(b"012345", 2), Some(&[]));
+/// assert_eq!(split_at_chunk::<_, 1>(b"012345", 0), Some(&[b'0']));
+/// assert_eq!(split_at_chunk::<_, 3>(b"012345", 2), Some(&[b'2', b'3', b'4']));
+/// assert_eq!(split_at_chunk::<_, 4>(b"012345", 2), Some(&[b'2', b'3', b'4', b'5']));
+/// assert_eq!(split_at_chunk::<_, 5>(b"012345", 2), None); // cannot get 5 elements (no b'6')
+/// assert_eq!(split_at_chunk::<_, 1>(b"012345", 5), Some(&[b'5']));
+/// assert_eq!(split_at_chunk::<_, 1>(b"012345", 6), None); // invalid index
+/// ```
+pub const fn split_at_chunk<T, const N: usize>(s: &[T], index: usize) -> Option<&[T; N]> {
+    if let Some(leftover) = s.len().checked_sub(index)
+        && N <= leftover
+    {
+        // SAFETY: checked for pointer validity, lifetime and count of elements.
+        return Some(unsafe { &*(s.as_ptr().add(index) as *const _) });
+    }
+    None
+}

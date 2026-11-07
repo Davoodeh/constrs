@@ -3,6 +3,7 @@
 ## Add
 
 - `slice::range_(inclusive_)?_get_(un)?checked` functions.
+- `slice::split_at_chunk` function.
 
 # `0.1.3`
 
