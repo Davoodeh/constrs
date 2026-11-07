@@ -2,6 +2,7 @@
 #![cfg_attr(not(test), no_main, no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+pub mod date;
 pub mod ip;
 pub mod num;
 pub mod percent_encoding;
