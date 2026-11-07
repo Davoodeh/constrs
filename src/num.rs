@@ -13,6 +13,8 @@
 // TODO add a trait extension that adds all the functionality here to `char`, `[u8]` and related
 // TODO impl encode for types other than u8
 
+use crate::slice;
+
 const fn panic_radix() -> ! {
     // assertion copied from [`char::to_digit`] source
     panic!("to_digit: invalid radix -- radix must be in the range 2 to 36 inclusive");
@@ -421,6 +423,58 @@ macro_rules! endian_fns {
         /// function.
         pub const fn be_prefix(s: &[u8]) -> Option<$ty> {
             let Some((raw, _)) = s.split_first_chunk() else {
+                return None;
+            };
+            Some(<$ty>::from_be_bytes(*raw))
+        }
+
+        #[doc = concat!("Run [`", stringify!($ty), "::from_le_bytes`] on the end of the string.")]
+        ///
+        /// This ignores beyond the number of bytes required to form the number, if the length must
+        /// match the exact number of bytes (a "residue" must not exist), just use the standard
+        /// function.
+        pub const fn le_postfix(s: &[u8]) -> Option<$ty> {
+            let Some((_, raw)) = s.split_last_chunk() else {
+                return None;
+            };
+            Some(<$ty>::from_le_bytes(*raw))
+        }
+
+        #[doc = concat!("Run [`", stringify!($ty), "::from_be_bytes`] on the end of the string.")]
+        ///
+        /// This ignores beyond the number of bytes required to form the number, if the length must
+        /// match the exact number of bytes (a "residue" must not exist), just use the standard
+        /// function.
+        pub const fn be_postfix(s: &[u8]) -> Option<$ty> {
+            let Some((_, raw)) = s.split_last_chunk() else {
+                return None;
+            };
+            Some(<$ty>::from_be_bytes(*raw))
+        }
+
+        #[doc = concat!("Run [`", stringify!($ty), "::from_le_bytes`] on the given index.")]
+        ///
+        /// This ignores beyond the number of bytes required to form the number, if the length must
+        /// match the exact number of bytes (a "residue" must not exist), just use the standard
+        /// function.
+        ///
+        /// If the number of bytes is not enough after index, will return [`None`].
+        pub const fn le_at(s: &[u8], index: usize) -> Option<$ty> {
+            let Some(raw) = slice::split_at_chunk(s, index) else {
+                return None;
+            };
+            Some(<$ty>::from_le_bytes(*raw))
+        }
+
+        #[doc = concat!("Run [`", stringify!($ty), "::from_be_bytes`] on the given index.")]
+        ///
+        /// This ignores beyond the number of bytes required to form the number, if the length must
+        /// match the exact number of bytes (a "residue" must not exist), just use the standard
+        /// function.
+        ///
+        /// If the number of bytes is not enough after index, will return [`None`].
+        pub const fn be_at(s: &[u8], index: usize) -> Option<$ty> {
+            let Some(raw) = slice::split_at_chunk(s, index) else {
                 return None;
             };
             Some(<$ty>::from_be_bytes(*raw))
