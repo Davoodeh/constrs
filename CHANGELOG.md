@@ -8,6 +8,8 @@
 - `slice::split_at_chunk` function.
 - `num::*::[lb]e_postfix` functions.
 - `num::*::[lb]e_at` functions.
+- `seq_macro` to testing dependencies (already needed by some
+  disabled/documenation only tests).
 
 # `0.1.3`
 

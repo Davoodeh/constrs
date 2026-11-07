@@ -16,3 +16,4 @@ rustdoc-args = ["--generate-link-to-definition"]
 
 [dev-dependencies]
 regex = "1.13"
+seq-macro = "0.3"
