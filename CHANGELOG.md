@@ -1,3 +1,9 @@
+# `0.1.4`
+
+## Add
+
+- `slice::range_(inclusive_)?_get_(un)?checked` functions.
+
 # `0.1.3`
 
 ## Fix

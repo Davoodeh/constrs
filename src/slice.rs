@@ -91,17 +91,29 @@ pub const fn last_mut<T>(s: &mut [T]) -> Option<&mut T> {
 /// assert_eq!(range_get(v, 6, 6), &v[6..6]); // "":     start == end
 /// ```
 pub const fn range_get<T>(s: &[T], start: usize, end: usize) -> &[T] {
-    let len = s.len();
-
-    if start > len || end > len {
-        panic!("`start` and `end` cannot be past the length");
+    match range_get_checked(s, start, end) {
+        Some(v) => v,
+        None => panic!("`0 <= start <= end <= len` violated"),
     }
-    let Some(count) = end.checked_sub(start) else {
-        panic!("`end` is before `start`");
-    };
+}
 
-    // SAFETY: Checked `0 <= start <= end <= len` in `count_range`
-    unsafe { core::slice::from_raw_parts(s.as_ptr().add(start), count) }
+/// [`range_get`] but not panicking.
+pub const fn range_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&[T]> {
+    if start <= end && end <= s.len() {
+        // SAFETY: Checked `0 <= start <= end <= len`
+        return Some(unsafe { range_get_unchecked(s, start, end) });
+    }
+    None
+}
+
+/// Get `&s[start..end]` without any checks (see [`range_get`]).
+///
+/// # Safety
+///
+/// The caller must guarantee the following: `0 <= start <= end <= len`.
+pub const unsafe fn range_get_unchecked<T>(s: &[T], start: usize, end: usize) -> &[T] {
+    // SAFETY: caller already promised validity
+    unsafe { core::slice::from_raw_parts(s.as_ptr().add(start), end.unchecked_sub(start)) }
 }
 
 /// Return `&s[start..=end]` in const.
@@ -132,24 +144,35 @@ pub const fn range_get<T>(s: &[T], start: usize, end: usize) -> &[T] {
 /// assert_eq!(range_inclusive_get(v, 2, 4), &v[2..=4]); // "234"
 /// assert_eq!(range_inclusive_get(v, 0, 5), &v[0..=5]); // "012345": end == len - 1
 /// assert_eq!(range_inclusive_get(v, 5, 5), &v[5..=5]); // "5":    start == end
-/// assert_eq!(range_inclusive_get(v, 5, 4), &v[5..=4]); // "": start + 1 == end
+/// assert_eq!(range_inclusive_get(v, 5, 4), &v[5..=4]); // "": start - 1 == end
 /// ```
 pub const fn range_inclusive_get<T>(s: &[T], start: usize, end: usize) -> &[T] {
-    if end == s.len() {
-        panic!("`end` is inclusive so cannot be equal `len`");
+    match range_inclusive_get_checked(s, start, end) {
+        Some(v) => v,
+        None => panic!("`0 <= start <= end + 1 <= len` violated"),
     }
+}
 
-    let len = s.len();
-
-    if start > len || end >= len {
-        panic!("`start` and `end` cannot be past the length");
-    }
-
-    // end is strictly smaller than `len` so it can safely undergo `+ 1`.
-    let Some(count) = (end + 1).checked_sub(start) else {
-        panic!("`end` is before `start`");
+/// [`range_inclusive_get`] but not panicking.
+pub const fn range_inclusive_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&[T]> {
+    // `end < s.len()` strictly smaller so `end + 1` can happen
+    let Some(end) = end.checked_add(1) else {
+        // TODO when the version is bumped past 1.95, add `core::hint::cold_path()` here
+        //      this basically never happens naturally unless something is very wrong.
+        //      indices are naturally below or equal [`isize::MAX`] even for [`u8`] which is half
+        //      the [`usize::MAX`] that makes this return [`None`].
+        // core::hint::cold_path();
+        return None;
     };
+    range_get_checked(s, start, end)
+}
 
-    // SAFETY: Checked `0 <= start <= end <= len` in `count_range`
-    unsafe { core::slice::from_raw_parts(s.as_ptr().add(start), count) }
+/// Get `&s[start..=end]` without any checks (see [`range_inclusive_get`]).
+///
+/// # Safety
+///
+/// The caller must guarantee the following: `0 <= start <= end + 1 <= len`.
+pub const unsafe fn range_inclusive_get_unchecked<T>(s: &[T], start: usize, end: usize) -> &[T] {
+    // SAFETY: caller already promised validity
+    unsafe { range_get_unchecked(s, start, end.unchecked_add(1)) }
 }
