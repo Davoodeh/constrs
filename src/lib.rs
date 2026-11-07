@@ -3,6 +3,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod date;
+pub mod email;
 pub mod ip;
 pub mod num;
 pub mod percent_encoding;

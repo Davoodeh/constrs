@@ -3,6 +3,7 @@
 ## Add
 
 - `date` module for pasing WHATWG dates.
+- `email` module for parsing WHATWG emails.
 - `slice::range_(inclusive_)?_get_(un)?checked` functions.
 - `slice::split_at_chunk` function.
 - `num::*::[lb]e_postfix` functions.

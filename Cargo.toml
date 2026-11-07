@@ -13,3 +13,6 @@ categories = ["no-std::no-alloc", "encoding", "embedded", "rust-patterns", "valu
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--generate-link-to-definition"]
+
+[dev-dependencies]
+regex = "1.13"
