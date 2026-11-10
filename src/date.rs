@@ -561,6 +561,13 @@ pub mod u8 {
         u16::previous_leap(year as u16 + 1970)
     }
 
+    /// Get the leap years/days count before and including the given year (offset 1970).
+    ///
+    /// See [`u16::leaps_inclusive_to`] for more.
+    pub const fn leaps_inclusive_to(year: u8) -> u16 {
+        u16::leaps_inclusive_to(year as u16 + 1970)
+    }
+
     /// See [`super::prefix`].
     pub const fn prefix(s: &[u8]) -> Result<(u8, u8, u8, usize), DateError> {
         prefix!(s)
@@ -750,6 +757,23 @@ macro_rules! date_fns_no_offset {
                 return candidate - 4;
             }
             candidate
+        }
+
+        /// Get the leap years/days count before and including the given year.
+        ///
+        /// ```rust
+        #[doc = concat!("# use constrs::date::", stringify!($ty), "::leaps_inclusive_to;")]
+        /// assert_eq!(leaps_inclusive_to(0), 0);
+        /// assert_eq!(leaps_inclusive_to(3), 0);
+        /// assert_eq!(leaps_inclusive_to(4), 1);
+        /// assert_eq!(leaps_inclusive_to(5), 1);
+        /// assert_eq!(leaps_inclusive_to(1970), 477);
+        /// assert_eq!(leaps_inclusive_to(1972), 478);
+        /// assert_eq!(leaps_inclusive_to(2225), 539);
+        /// assert_eq!(leaps_inclusive_to(65535), 15891);
+        /// ```
+        pub const fn leaps_inclusive_to(year: $ty) -> $ty {
+            (year / 4) - (year / 100) + (year / 400)
         }
     };
 }
