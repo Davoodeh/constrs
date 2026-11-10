@@ -18,9 +18,11 @@ use crate::{num, slice};
 /// ```rust
 /// # use constrs::date::{days_in_month, YearMonthError::*};
 /// assert_eq!(days_in_month(b"0",    00), 00);
+/// assert_eq!(days_in_month(b"00",   00), 00);
 /// assert_eq!(days_in_month(b"0",    01), 00);
 /// assert_eq!(days_in_month(b"0",    13), 00);
 /// assert_eq!(days_in_month(b"1",    13), 00);
+/// assert_eq!(days_in_month(b"01",   13), 00);
 /// assert_eq!(days_in_month(b"1",    01), 31);
 /// assert_eq!(days_in_month(b"1",    03), 31);
 /// assert_eq!(days_in_month(b"1",    04), 30);
