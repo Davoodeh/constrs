@@ -87,6 +87,13 @@ pub const fn next_leap(year: &[u8]) -> u16 {
     last_four_digits_or!(year, |year| u16::next_leap(year), 0)
 }
 
+/// Return the previous leap year (0 means the end of the type is reached).
+///
+/// See [`u16::previous_leap`] for more.
+pub const fn previous_leap(year: &[u8]) -> u16 {
+    last_four_digits_or!(year, |year| u16::previous_leap(year), 0)
+}
+
 /// Errors thrown when parsing months and years (see [`year_month`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum YearMonthError {
@@ -413,6 +420,13 @@ pub mod u8 {
         u16::next_leap(year as u16 + 1970)
     }
 
+    /// Return the previous leap year (0 means the end of the type is reached).
+    ///
+    /// See [`next_leap`] for more.
+    pub const fn previous_leap(year: u8) -> u16 {
+        u16::previous_leap(year as u16 + 1970)
+    }
+
     /// See [`super::prefix`].
     pub const fn prefix(s: &[u8]) -> Result<(u8, u8, u8, usize), DateError> {
         prefix!(s)
@@ -498,6 +512,58 @@ macro_rules! date_fns_no_offset {
             if candidate % 100 == 0 && candidate % 400 != 0 {
                 // if year % 400 for century leap is not valid skip it
                 return candidate + 4;
+            }
+            candidate
+        }
+
+        /// Return the previous leap year (0 means the end of the type is reached).
+        ///
+        /// See [`next_leap`] for more.
+        ///
+        /// # Example
+        ///
+        /// ```rust
+        #[doc = concat!("# use constrs::date::", stringify!($ty), "::previous_leap;")]
+        /// assert_eq!(previous_leap(0),    0);
+        /// assert_eq!(previous_leap(4),    0);
+        /// assert_eq!(previous_leap(8),    4);
+        /// assert_eq!(previous_leap(96),   92);
+        /// assert_eq!(previous_leap(100),  96);
+        /// assert_eq!(previous_leap(104),  96);
+        /// assert_eq!(previous_leap(1600), 1596);
+        /// assert_eq!(previous_leap(1604), 1600);
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX - 6), ", stringify!($ty), "::MAX - 7);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX - 5), ", stringify!($ty), "::MAX - 7);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX - 4), ", stringify!($ty), "::MAX - 7);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX - 3), ", stringify!($ty), "::MAX - 7);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX - 2), ", stringify!($ty), "::MAX - 3);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX - 1), ", stringify!($ty), "::MAX - 3);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(previous_leap(", stringify!($ty), "::MAX), ", stringify!($ty), "::MAX - 3);"
+        )]
+        /// ```
+        pub const fn previous_leap(year: $ty) -> $ty {
+            if year <= 3 {
+                return 0;
+            }
+            let candidate = (year - 1) & !3;
+            // check the new year to be 100 and if so, year % 4 is not enough, it must be year % 400
+            if candidate % 400 != 0 && candidate % 100 == 0 {
+                // if year % 400 for century leap is not valid skip it
+                // this will not be the case for value 3..=8 so it's safe to have -4
+                return candidate - 4;
             }
             candidate
         }
