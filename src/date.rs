@@ -73,6 +73,16 @@ pub const fn days_in_month(year: &[u8], month: u8) -> u8 {
     last_four_digits_or!(year, |year| u16::days_in_month(year, month), 0)
 }
 
+/// [`days_in_month`] but assumes the year is non-leap, always returns `0 | 28..=31`.
+pub const fn days_in_month_non_leap(month: u8) -> u8 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => 28,
+        _ => 0,
+    }
+}
+
 /// Is this year a leap year?
 pub const fn is_leap(year: &[u8]) -> bool {
     last_four_digits_or!(year, |year| u16::is_leap(year), false)
