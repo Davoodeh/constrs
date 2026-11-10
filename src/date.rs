@@ -83,6 +83,112 @@ pub const fn days_in_month_non_leap(month: u8) -> u8 {
     }
 }
 
+/// Count the number of days in a given moon count (moon is `0..12`).
+///
+/// This is the last day of each month accumulated (ordinal).
+pub const FULL_MOON_ORDINALS: [u16; 12] = [31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365];
+
+/// Return the number of day in the year from `1..=365` (0 if month not in `1..=12` or day invalid).
+///
+/// # Example
+///
+/// ```rust
+/// # use constrs::date::ordinal_non_leap;
+/// assert_eq!(ordinal_non_leap(00, 00),   0);
+/// assert_eq!(ordinal_non_leap(00, 31),   0);
+/// assert_eq!(ordinal_non_leap(01, 32),   0);
+/// assert_eq!(ordinal_non_leap(01, 01),   1);
+/// assert_eq!(ordinal_non_leap(01, 02),   2);
+/// assert_eq!(ordinal_non_leap(01, 31),  31);
+/// assert_eq!(ordinal_non_leap(02, 01),  32);
+/// assert_eq!(ordinal_non_leap(02, 28),  59);
+/// assert_eq!(ordinal_non_leap(03, 01),  60);
+/// assert_eq!(ordinal_non_leap(03, 31),  90);
+/// assert_eq!(ordinal_non_leap(04, 01),  91);
+/// assert_eq!(ordinal_non_leap(04, 30), 120);
+/// assert_eq!(ordinal_non_leap(05, 01), 121);
+/// assert_eq!(ordinal_non_leap(05, 31), 151);
+/// assert_eq!(ordinal_non_leap(06, 01), 152);
+/// assert_eq!(ordinal_non_leap(06, 30), 181);
+/// assert_eq!(ordinal_non_leap(07, 01), 182);
+/// assert_eq!(ordinal_non_leap(07, 31), 212);
+/// assert_eq!(ordinal_non_leap(08, 01), 213);
+/// assert_eq!(ordinal_non_leap(08, 31), 243);
+/// assert_eq!(ordinal_non_leap(09, 01), 244);
+/// assert_eq!(ordinal_non_leap(09, 30), 273);
+/// assert_eq!(ordinal_non_leap(10, 01), 274);
+/// assert_eq!(ordinal_non_leap(10, 31), 304);
+/// assert_eq!(ordinal_non_leap(11, 01), 305);
+/// assert_eq!(ordinal_non_leap(11, 30), 334);
+/// assert_eq!(ordinal_non_leap(12, 01), 335);
+/// assert_eq!(ordinal_non_leap(12, 31), 365);
+/// ```
+pub const fn ordinal_non_leap(month: u8, day: u8) -> u16 {
+    if month < 1 || month > 12 {
+        return 0; // invalid month
+    }
+    let days_of_month = days_in_month_non_leap(month);
+    if days_of_month < day {
+        return 0; // invalid day of month
+    }
+    if month == 1 {
+        return day as u16;
+    }
+    FULL_MOON_ORDINALS[(month - 2) as usize] + day as u16
+}
+
+/// Return [`ordinal_non_leap`] but leap aware.
+pub const fn ordinal(year: &[u8], month: u8, day: u8) -> u16 {
+    last_four_digits_or!(
+        year,
+        |year| if let v @ 1.. = ordinal_non_leap(month, day) {
+            v + ((month > 2 && u16::is_leap(year)) as u16)
+        } else {
+            0
+        },
+        0
+    )
+}
+
+/// Return [`ordinal_non_leap`] of this month with it's last day of month.
+///
+/// # Example
+///
+/// ```rust
+/// # use constrs::date::{ordinal_non_leap, ordinal_last_non_leap};
+/// assert_eq!(ordinal_non_leap(01, 31), ordinal_last_non_leap(01));
+/// assert_eq!(ordinal_non_leap(02, 28), ordinal_last_non_leap(02));
+/// assert_eq!(ordinal_non_leap(03, 31), ordinal_last_non_leap(03));
+/// assert_eq!(ordinal_non_leap(04, 30), ordinal_last_non_leap(04));
+/// assert_eq!(ordinal_non_leap(05, 31), ordinal_last_non_leap(05));
+/// assert_eq!(ordinal_non_leap(06, 30), ordinal_last_non_leap(06));
+/// assert_eq!(ordinal_non_leap(07, 31), ordinal_last_non_leap(07));
+/// assert_eq!(ordinal_non_leap(08, 31), ordinal_last_non_leap(08));
+/// assert_eq!(ordinal_non_leap(09, 30), ordinal_last_non_leap(09));
+/// assert_eq!(ordinal_non_leap(10, 31), ordinal_last_non_leap(10));
+/// assert_eq!(ordinal_non_leap(11, 30), ordinal_last_non_leap(11));
+/// assert_eq!(ordinal_non_leap(12, 31), ordinal_last_non_leap(12));
+/// ```
+pub const fn ordinal_last_non_leap(month: u8) -> u16 {
+    if month < 1 || month > 12 {
+        return 0; // invalid month
+    }
+    FULL_MOON_ORDINALS[(month - 1) as usize]
+}
+
+/// Return [`ordinal_last_non_leap`] but leap aware.
+pub const fn ordinal_last(year: &[u8], month: u8) -> u16 {
+    last_four_digits_or!(
+        year,
+        |year| if let v @ 1.. = ordinal_last_non_leap(month) {
+            v + ((month > 2 && u16::is_leap(year)) as u16)
+        } else {
+            0
+        },
+        0
+    )
+}
+
 /// Is this year a leap year?
 pub const fn is_leap(year: &[u8]) -> bool {
     last_four_digits_or!(year, |year| u16::is_leap(year), false)
@@ -425,6 +531,24 @@ pub mod u8 {
         u16::is_leap(year as u16 + 1970)
     }
 
+    /// See [`super::ordinal`].
+    pub const fn ordinal(year: u8, month: u8, day: u8) -> u16 {
+        if let v @ 1.. = ordinal_non_leap(month, day) {
+            v + ((month > 2 && is_leap(year)) as u16)
+        } else {
+            0
+        }
+    }
+
+    /// See [`super::ordinal_last`].
+    pub const fn ordinal_last(year: u8, month: u8) -> u16 {
+        if let v @ 1.. = ordinal_last_non_leap(month) {
+            v + ((month > 2 && is_leap(year)) as u16)
+        } else {
+            0
+        }
+    }
+
     /// Return the next leap year (0 means the end of the type is reached).
     pub const fn next_leap(year: u8) -> u16 {
         u16::next_leap(year as u16 + 1970)
@@ -500,6 +624,24 @@ macro_rules! date_fns_no_offset {
         /// Is this year a leap year?
         pub const fn is_leap(year: $ty) -> bool {
             year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
+        }
+
+        /// See [`super::ordinal`].
+        pub const fn ordinal(year: $ty, month: u8, day: u8) -> u16 {
+            if let v @ 1.. = ordinal_non_leap(month, day) {
+                v + ((month > 2 && is_leap(year)) as u16)
+            } else {
+                0
+            }
+        }
+
+        /// See [`super::ordinal_last`].
+        pub const fn ordinal_last(year: $ty, month: u8) -> u16 {
+            if let v @ 1.. = ordinal_last_non_leap(month) {
+                v + ((month > 2 && is_leap(year)) as u16)
+            } else {
+                0
+            }
         }
 
         /// Return the next leap year (0 means the end of the type is reached).
