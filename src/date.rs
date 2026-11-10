@@ -7,6 +7,20 @@
 
 use crate::{num, slice};
 
+/// Parse the last 4 (Least Significant Digits) of the given number, run `f` or return default if 0.
+macro_rules! last_four_digits_or {
+    ($e:expr, |$v:ident $(: u16)?| $f:expr, $default:expr) => {{
+        let $v = match $v.last_chunk::<4>() {
+            Some(v) => v,
+            None => $v,
+        };
+        if let Some($v @ 1..) = num::u16::decode($v, 10) {
+            return { $f };
+        }
+        $default
+    }};
+}
+
 /// Maximum number of days in a given month (0 is invalid, guaranteed to be in `0 | 28..=31`).
 ///
 /// This is an implementation of [number of days in month algorithm]. The interesting part about
@@ -56,43 +70,21 @@ use crate::{num, slice};
 /// [number of days in month algorithm]:
 /// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#number-of-days-in-month-month-of-year-year
 pub const fn days_in_month(year: &[u8], month: u8) -> u8 {
-    let year = match year.last_chunk::<4>() {
-        Some(v) => v,
-        None => year,
-    };
-    if let Some(year) = num::u16::decode(year, 10) {
-        // the following will check for year == 0 and return 0 so no need to check above
-        return u16::days_in_month(year, month);
-    }
-    0
+    last_four_digits_or!(year, |year| u16::days_in_month(year, month), 0)
 }
 
 /// Is this year a leap year?
 pub const fn is_leap(year: &[u8]) -> bool {
-    let year = match year.last_chunk::<4>() {
-        Some(v) => v,
-        None => year,
-    };
-    if let Some(year) = num::u16::decode(year, 10) {
-        // the following will check for year == 0 and return 0 so no need to check above
-        return u16::is_leap(year);
-    }
-    false
+    last_four_digits_or!(year, |year| u16::is_leap(year), false)
 }
 
 /// Return the next leap year (0 means the end of the type is reached).
 ///
 /// Only returns 0 when the value is not a valid ASCII string of numbers.
+///
+/// See [`u16::next_leap`] for more.
 pub const fn next_leap(year: &[u8]) -> u16 {
-    let year = match year.last_chunk::<4>() {
-        Some(v) => v,
-        None => year,
-    };
-    if let Some(year) = num::u16::decode(year, 10) {
-        // the following will check for year == 0 and return 0 so no need to check above
-        return u16::next_leap(year);
-    }
-    0
+    last_four_digits_or!(year, |year| u16::next_leap(year), 0)
 }
 
 /// Errors thrown when parsing months and years (see [`year_month`]).
