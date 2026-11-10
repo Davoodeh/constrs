@@ -623,7 +623,7 @@ macro_rules! date_fns_no_offset {
 
         /// Is this year a leap year?
         pub const fn is_leap(year: $ty) -> bool {
-            year % 400 == 0 || (year % 4 == 0 && year % 100 != 0)
+            (year & 3 == 0 && year % 100 != 0) || year % 400 == 0
         }
 
         /// See [`super::ordinal`].
@@ -645,6 +645,38 @@ macro_rules! date_fns_no_offset {
         }
 
         /// Return the next leap year (0 means the end of the type is reached).
+        ///
+        /// See [`previous_leap`] for more.
+        ///
+        /// # Example
+        ///
+        /// ```rust
+        #[doc = concat!("# use constrs::date::", stringify!($ty), "::next_leap;")]
+        /// assert_eq!(next_leap(0),    4);
+        /// assert_eq!(next_leap(4),    8);
+        /// assert_eq!(next_leap(8),    12);
+        /// assert_eq!(next_leap(96),   104);
+        /// assert_eq!(next_leap(1596), 1600);
+        #[doc = concat!(
+            "assert_eq!(next_leap(", stringify!($ty), "::MAX - 8), ", stringify!($ty), "::MAX - 7);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(next_leap(", stringify!($ty), "::MAX - 7), ", stringify!($ty), "::MAX - 3);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(next_leap(", stringify!($ty), "::MAX - 6), ", stringify!($ty), "::MAX - 3);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(next_leap(", stringify!($ty), "::MAX - 5), ", stringify!($ty), "::MAX - 3);"
+        )]
+        #[doc = concat!(
+            "assert_eq!(next_leap(", stringify!($ty), "::MAX - 4), ", stringify!($ty), "::MAX - 3);"
+        )]
+        #[doc = concat!("assert_eq!(next_leap(", stringify!($ty), "::MAX - 3), 0);")]
+        #[doc = concat!("assert_eq!(next_leap(", stringify!($ty), "::MAX - 2), 0);")]
+        #[doc = concat!("assert_eq!(next_leap(", stringify!($ty), "::MAX - 1), 0);")]
+        #[doc = concat!("assert_eq!(next_leap(", stringify!($ty), "::MAX), 0);")]
+        /// ```
         pub const fn next_leap(year: $ty) -> $ty {
             // for all the powers of two minus one in {8, 16, 32, 64, 128}, the last leap year is
             // simply -3 of that very value, if more than that, it's not possible to calculate.
@@ -657,11 +689,11 @@ macro_rules! date_fns_no_offset {
             // ending.
 
             // go to the next 4 as the candidate
-            // v & !3 => v % 4
+            // v & !3 => v - (v % 4) => floor_multiple_of_4
             let candidate = (year + 4) & !3;
 
             // check the new year to be 100 and if so, year % 4 is not enough, it must be year % 400
-            if candidate % 100 == 0 && candidate % 400 != 0 {
+            if candidate % 400 != 0 && candidate % 100 == 0 {
                 // if year % 400 for century leap is not valid skip it
                 return candidate + 4;
             }
