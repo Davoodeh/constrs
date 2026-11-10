@@ -333,18 +333,7 @@ macro_rules! year_month {
     }};
 }
 
-macro_rules! decode {
-    ($s:expr) => {{
-        let s = $s;
-        match prefix(s) {
-            Ok((v1, v2, v3, len)) if len == s.len() => Ok((v1, v2, v3)),
-            Ok(_) => Err(DateError::YearMonth(YearMonthError::InputLen)),
-            Err(e) => Err(e),
-        }
-    }};
-}
-
-/// Return the `yyyy-mm` [valid month string] where year in `1..` and month in `1..=12` at prefix.
+/// Return the `yyyy-mm` [valid month string] where year in `1..` and month in `1..=12`.
 ///
 /// # Examples
 ///
@@ -373,6 +362,17 @@ macro_rules! decode {
 /// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-month-string
 pub const fn year_month(s: &[u8]) -> Result<(&[u8], u8), YearMonthError> {
     year_month!(s)
+}
+
+macro_rules! decode {
+    ($s:expr) => {{
+        let s = $s;
+        match prefix(s) {
+            Ok((v1, v2, v3, len)) if len == s.len() => Ok((v1, v2, v3)),
+            Ok(_) => Err(DateError::YearMonth(YearMonthError::InputLen)),
+            Err(e) => Err(e),
+        }
+    }};
 }
 
 /// Errors thrown when parsing of a date fails (see [`decode`]).
@@ -531,6 +531,11 @@ pub mod u8 {
         })
     }
 
+    /// See [`super::year_month`].
+    pub const fn year_month(s: &[u8]) -> Result<(u8, u8), YearMonthError> {
+        year_month!(s)
+    }
+
     /// See [`super::days_in_month`].
     pub const fn days_in_month(year: u8, month: u8) -> u8 {
         u16::days_in_month(year as u16 + 1970, month)
@@ -586,11 +591,6 @@ pub mod u8 {
     /// See [`super::decode`].
     pub const fn decode(s: &[u8]) -> Result<(u8, u8, u8), DateError> {
         decode!(s)
-    }
-
-    /// See [`super::year_month`].
-    pub const fn year_month(s: &[u8]) -> Result<(u8, u8), YearMonthError> {
-        year_month!(s)
     }
 
     /// Return whether the given year is a 53 week year (true) or a 52 week year (false).
