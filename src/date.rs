@@ -2,6 +2,9 @@
 //!
 //! The date in WHATWG is a [proleptic Gregorian date] from year 1 (0 is invalid) and onwards.
 //!
+//! The timestamp functions only exist under module [`mod@u32`] (since the input and output years
+//! are [`prim@u32`]). Other primitives do not support timestamp operations (yet).
+//!
 //! [proleptic Gregorian date]:
 //! https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#proleptic-gregorian-date
 
@@ -795,6 +798,233 @@ pub mod u16 {
 /// Helpers for parsing values in a space that only returns [`prim@u32`].
 pub mod u32 {
     use super::*;
+
+    /// Return the timestamp of the date in seconds since "1970-01-01T00:00:00.0Z".
+    ///
+    /// The year must no have any prefixed zeros. Month must be in `1..=12` and the day of the month
+    /// exist in that month according to the [`days_in_month`] limit.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use constrs::date::u32::timestamp_i64;
+    /// assert_eq!(timestamp_i64(0000, 01, 01), None); // invalid year
+    /// assert_eq!(timestamp_i64(1970, 00, 01), None); // invalid month
+    /// assert_eq!(timestamp_i64(1970, 01, 00), None); // invalid day
+    /// assert_eq!(timestamp_i64(1970, 01, 32), None); // invalid day
+    /// assert_eq!(timestamp_i64(1970, 02, 29), None); // invalid day (leap aware)
+    /// assert_eq!(timestamp_i64(0001, 01, 01), Some(-62135596800));
+    /// assert_eq!(timestamp_i64(1951, 01, 01), Some(-599616000));
+    /// assert_eq!(timestamp_i64(1951, 01, 02), Some(-599529600));
+    /// assert_eq!(timestamp_i64(1951, 02, 01), Some(-596937600));
+    /// assert_eq!(timestamp_i64(1951, 02, 02), Some(-596851200));
+    /// assert_eq!(timestamp_i64(1951, 04, 16), Some(-590544000));
+    /// assert_eq!(timestamp_i64(1951, 12, 01), Some(-570758400));
+    /// assert_eq!(timestamp_i64(1951, 12, 30), Some(-568252800));
+    /// assert_eq!(timestamp_i64(1951, 12, 31), Some(-568166400));
+    /// assert_eq!(timestamp_i64(1958, 01, 01), Some(-378691200));
+    /// assert_eq!(timestamp_i64(1958, 01, 02), Some(-378604800));
+    /// assert_eq!(timestamp_i64(1958, 02, 01), Some(-376012800));
+    /// assert_eq!(timestamp_i64(1958, 02, 02), Some(-375926400));
+    /// assert_eq!(timestamp_i64(1958, 04, 16), Some(-369619200));
+    /// assert_eq!(timestamp_i64(1958, 12, 01), Some(-349833600));
+    /// assert_eq!(timestamp_i64(1958, 12, 30), Some(-347328000));
+    /// assert_eq!(timestamp_i64(1958, 12, 31), Some(-347241600));
+    /// assert_eq!(timestamp_i64(1968, 01, 01), Some(-63158400));
+    /// assert_eq!(timestamp_i64(1968, 01, 02), Some(-63072000));
+    /// assert_eq!(timestamp_i64(1968, 02, 01), Some(-60480000));
+    /// assert_eq!(timestamp_i64(1968, 02, 02), Some(-60393600));
+    /// assert_eq!(timestamp_i64(1968, 04, 16), Some(-54000000));
+    /// assert_eq!(timestamp_i64(1968, 12, 01), Some(-34214400));
+    /// assert_eq!(timestamp_i64(1968, 12, 30), Some(-31708800));
+    /// assert_eq!(timestamp_i64(1968, 12, 31), Some(-31622400));
+    /// assert_eq!(timestamp_i64(1969, 01, 01), Some(-31536000));
+    /// assert_eq!(timestamp_i64(1969, 01, 02), Some(-31449600));
+    /// assert_eq!(timestamp_i64(1969, 02, 01), Some(-28857600));
+    /// assert_eq!(timestamp_i64(1969, 02, 02), Some(-28771200));
+    /// assert_eq!(timestamp_i64(1969, 04, 16), Some(-22464000));
+    /// assert_eq!(timestamp_i64(1969, 12, 01), Some(-2678400));
+    /// assert_eq!(timestamp_i64(1969, 12, 30), Some(-172800));
+    /// assert_eq!(timestamp_i64(1969, 12, 31), Some(-86400));
+    /// assert_eq!(timestamp_i64(1970, 01, 01), Some(0));
+    /// assert_eq!(timestamp_i64(1970, 01, 02), Some(86400));
+    /// assert_eq!(timestamp_i64(1970, 02, 01), Some(2678400));
+    /// assert_eq!(timestamp_i64(1970, 02, 02), Some(2764800));
+    /// assert_eq!(timestamp_i64(1970, 04, 16), Some(9072000));
+    /// assert_eq!(timestamp_i64(1970, 12, 01), Some(28857600));
+    /// assert_eq!(timestamp_i64(1970, 12, 30), Some(31363200));
+    /// assert_eq!(timestamp_i64(1970, 12, 31), Some(31449600));
+    /// assert_eq!(timestamp_i64(1971, 01, 01), Some(31536000));
+    /// assert_eq!(timestamp_i64(1971, 01, 02), Some(31622400));
+    /// assert_eq!(timestamp_i64(1971, 02, 01), Some(34214400));
+    /// assert_eq!(timestamp_i64(1971, 02, 02), Some(34300800));
+    /// assert_eq!(timestamp_i64(1971, 04, 16), Some(40608000));
+    /// assert_eq!(timestamp_i64(1971, 12, 01), Some(60393600));
+    /// assert_eq!(timestamp_i64(1971, 12, 30), Some(62899200));
+    /// assert_eq!(timestamp_i64(1971, 12, 31), Some(62985600));
+    /// assert_eq!(timestamp_i64(2024, 01, 01), Some(1704067200));
+    /// assert_eq!(timestamp_i64(2024, 01, 02), Some(1704153600));
+    /// assert_eq!(timestamp_i64(2024, 02, 01), Some(1706745600));
+    /// assert_eq!(timestamp_i64(2024, 02, 02), Some(1706832000));
+    /// assert_eq!(timestamp_i64(2024, 04, 16), Some(1713225600));
+    /// assert_eq!(timestamp_i64(2024, 12, 01), Some(1733011200));
+    /// assert_eq!(timestamp_i64(2024, 12, 30), Some(1735516800));
+    /// assert_eq!(timestamp_i64(2024, 12, 31), Some(1735603200));
+    /// assert_eq!(timestamp_i64(2025, 01, 01), Some(1735689600));
+    /// assert_eq!(timestamp_i64(2025, 01, 02), Some(1735776000));
+    /// assert_eq!(timestamp_i64(2025, 02, 01), Some(1738368000));
+    /// assert_eq!(timestamp_i64(2025, 02, 02), Some(1738454400));
+    /// assert_eq!(timestamp_i64(2025, 04, 16), Some(1744761600));
+    /// assert_eq!(timestamp_i64(2025, 12, 01), Some(1764547200));
+    /// assert_eq!(timestamp_i64(2025, 12, 30), Some(1767052800));
+    /// assert_eq!(timestamp_i64(2025, 12, 31), Some(1767139200));
+    /// assert_eq!(timestamp_i64(u16::MAX as _, 12, 31), Some(2005949059200));
+    /// assert_eq!(timestamp_i64(u32::MAX, 12, 31), Some(135536014634198400));
+    /// ```
+    pub const fn timestamp_i64(year: u32, month: u8, day: u8) -> Option<i64> {
+        let days_in_month @ 1.. = days_in_month(year, month) else {
+            return None;
+        };
+        if day < 1 || day > days_in_month {
+            return None;
+        }
+
+        let non_leap_days = (year as i64 - 1970) * 365;
+        let leap_days: i64 =
+            leaps_inclusive_to(year - 1) as i64 - const { leaps_inclusive_to(1969) } as i64;
+        let month_days = ordinal_last(year, month - 1) as i64;
+
+        let days = non_leap_days + leap_days + month_days + (day as i64 - 1);
+        Some(days * 86400)
+    }
+
+    /// Return the timestamp of the date in seconds since "1970-01-01T00:00:00.0Z".
+    ///
+    /// The year must no have any prefixed zeros. Month must be in `1..=12` and the day of the month
+    /// exist in that month according to the [`days_in_month`] limit.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use constrs::date::u32::from_timestamp_i64;
+    /// assert_eq!(from_timestamp_i64(-62135596801), None);
+    /// assert_eq!(from_timestamp_i64(-62135596800), Some((0001, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(i32::MIN as i64), Some((1901, 12, 13)));
+    /// assert_eq!(from_timestamp_i64(-599616000), Some((1951, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(-599529600), Some((1951, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(-596937600), Some((1951, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(-596851200), Some((1951, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(-590544000), Some((1951, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(-570758400), Some((1951, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(-568252800), Some((1951, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(-568166400), Some((1951, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(-378691200), Some((1958, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(-378604800), Some((1958, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(-376012800), Some((1958, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(-375926400), Some((1958, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(-369619200), Some((1958, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(-349833600), Some((1958, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(-347328000), Some((1958, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(-347241600), Some((1958, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(-63158400),  Some((1968, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(-63072000),  Some((1968, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(-60480000),  Some((1968, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(-60393600),  Some((1968, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(-54000000),  Some((1968, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(-34214400),  Some((1968, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(-31708800),  Some((1968, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(-31622400),  Some((1968, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(-31536000),  Some((1969, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(-31449600),  Some((1969, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(-28857600),  Some((1969, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(-28771200),  Some((1969, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(-22464000),  Some((1969, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(-2678400),   Some((1969, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(-172800),    Some((1969, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(-86400),     Some((1969, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(0),          Some((1970, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(86400),      Some((1970, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(2678400),    Some((1970, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(2764800),    Some((1970, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(9072000),    Some((1970, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(28857600),   Some((1970, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(31363200),   Some((1970, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(31449600),   Some((1970, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(31536000),   Some((1971, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(31622400),   Some((1971, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(34214400),   Some((1971, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(34300800),   Some((1971, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(40608000),   Some((1971, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(60393600),   Some((1971, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(62899200),   Some((1971, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(62985600),   Some((1971, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(1704067200), Some((2024, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(1704153600), Some((2024, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(1706745600), Some((2024, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(1706832000), Some((2024, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(1713225600), Some((2024, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(1733011200), Some((2024, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(1735516800), Some((2024, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(1735603200), Some((2024, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(1735689600), Some((2025, 01, 01)));
+    /// assert_eq!(from_timestamp_i64(1735776000), Some((2025, 01, 02)));
+    /// assert_eq!(from_timestamp_i64(1738368000), Some((2025, 02, 01)));
+    /// assert_eq!(from_timestamp_i64(1738454400), Some((2025, 02, 02)));
+    /// assert_eq!(from_timestamp_i64(1744761600), Some((2025, 04, 16)));
+    /// assert_eq!(from_timestamp_i64(1764547200), Some((2025, 12, 01)));
+    /// assert_eq!(from_timestamp_i64(1767052800), Some((2025, 12, 30)));
+    /// assert_eq!(from_timestamp_i64(1767139200), Some((2025, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(i32::MAX as i64), Some((2038, 01, 19)));
+    /// assert_eq!(from_timestamp_i64(u32::MAX as i64), Some((2106, 02, 07)));
+    /// assert_eq!(from_timestamp_i64(135536014634198400), Some((u32::MAX, 12, 31)));
+    /// assert_eq!(from_timestamp_i64(135536014634198401), None);
+    /// ```
+    // TODO move to their own module (i64)
+    pub const fn from_timestamp_i64(timestamp: i64) -> Option<(u32, u8, u8)> {
+        if timestamp < const { u32::timestamp_i64(1, 1, 1).unwrap() }
+            || timestamp > const { u32::timestamp_i64(u32::MAX, 12, 31).unwrap() }
+        {
+            return None;
+        }
+
+        // calculate years and ordinal
+        // 146097 is a full 400 year cycle (no GCD)
+        let days = timestamp.div_euclid(86400); // guarantee positive results
+        let cycles = days.div_euclid(146097); // a full 400 years cycle in days
+        // (assuming u32 is unsigned) since the input is limited to the timestamp of
+        // u32::MAX-12-31, this will not overflow nor miss information if casted to u32.
+        // Although mathematically this can get as high as u32::MAX and as low as -30, the
+        // naive might cast it to larger types.  However, this is proven to work even if casted
+        // to signed of u32.
+        //
+        // If this is u32, the y += 1 in the loop will overflow for the minimum timestamp
+        // (1-1-1). So either this must remain signed of u32 or the adding be wrapping add.
+        let mut year = (1970 + (cycles * 400)) as u32;
+        let mut days = days.rem_euclid(146097) as u32; // remove the cycles just added to year
+        let mut leapness = u32::is_leap(year);
+        while let Some(new_days) = days.checked_sub(365 + leapness as u32) {
+            days = new_days;
+            year = year.wrapping_add(1);
+            leapness = u32::is_leap(year);
+        }
+        let ordinal = 1 + days as u16;
+
+        // calculate the month and day
+        let mut month = 12;
+        let mut day = ordinal as u8; // if lower than 31 loop never runs so it's valid
+        while month > 0 {
+            let last_ordinal = ordinal_last_non_leap(month - 1) + ((month > 2 && leapness) as u16);
+
+            // if the ordinal is larger than the end of the previous month, it's definitely there.
+            if let Some(v) = ordinal.checked_sub(last_ordinal) {
+                day = v as u8;
+                break;
+            }
+            month -= 1;
+        }
+
+        Some((year, month, day))
+    }
 
     date_fns_no_offset!(u32);
 }
