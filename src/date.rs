@@ -213,6 +213,13 @@ pub const fn previous_leap(year: &[u8]) -> u16 {
     last_four_digits_or!(year, |year| u16::previous_leap(year), 0)
 }
 
+/// Return whether the given year is a 53 week year (true) or a 52 week year (false).
+///
+/// See [`u16::is_weeks_53`].
+pub const fn is_weeks_53(year: &[u8]) -> bool {
+    last_four_digits_or!(year, |year| u16::is_weeks_53(year), false)
+}
+
 /// Errors thrown when parsing months and years (see [`year_month`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum YearMonthError {
@@ -585,6 +592,13 @@ pub mod u8 {
     pub const fn year_month(s: &[u8]) -> Result<(u8, u8), YearMonthError> {
         year_month!(s)
     }
+
+    /// Return whether the given year is a 53 week year (true) or a 52 week year (false).
+    ///
+    /// See [`u16::is_weeks_53`] for more.
+    pub const fn is_weeks_53(year: u8) -> bool {
+        u16::is_weeks_53(year as u16 + 1970)
+    }
 }
 
 /// "offset" refers to the +255 behavior in [`mod@u8`].
@@ -777,6 +791,33 @@ macro_rules! date_fns_no_offset {
         /// ```
         pub const fn leaps_inclusive_to(year: $ty) -> $ty {
             (year / 4) - (year / 100) + (year / 400)
+        }
+
+        /// Return whether the given year is a 53 week year (true) or a 52 week year (false).
+        ///
+        /// The week description is taken from
+        /// <https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#weeks>.
+        ///
+        /// Generally, counting from the 1-1-1, the number of `days % 7` yields 0 for Monday, 1 for
+        /// Tuesday and so forth. If a year starts with Thursday (3) or starts with Wednesday (2) on
+        /// leap years, it is a 53 weeks year.
+        ///
+        /// Since the calendar is priodic with cycles of 146097 days (400 year cycles) and `146097 %
+        /// 7` is 0 implies that `year % 400` will have the same results as `year`. All in all,
+        /// everything proves this, much like leap calculations, is only dependent on the last 4
+        /// digits of a year number.
+        ///
+        /// This returns false for year 0 which is invalid.
+        pub const fn is_weeks_53(year: $ty) -> bool {
+            if year == 0 {
+                return false;
+            }
+
+            let days = (year - 1) * 365 + leaps_inclusive_to(year - 1);
+            let weekday = days % 7; // weekday of Jan 1st
+
+            // is Thusday or (is Wednesday on a leap year)
+            weekday == 3 || (weekday == 2 && is_leap(year))
         }
     };
 }
