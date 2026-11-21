@@ -10,6 +10,25 @@
 
 use crate::{num, slice};
 
+/// Parse a year with optional zero prefix of any length larger than 0 and with at least 4 digits.
+///
+/// This is the common year parser between different types of dates. The rest of the string is
+/// ignored.
+///
+/// Returns the year number without the prefixed zeros and the index at which the first the unparsed
+/// item is held (the length of the consumed items). Naturally, if the returned length is equal to
+/// the length of the input string, the result is parsed entirely.
+pub const fn year_prefix(s: &[u8]) -> Option<(&[u8], usize)> {
+    let (year_zeros_end, year_len) = num::prefix_span(s, 10);
+    // if not 4 digits or if the year is 0 (invalid in the standard)
+    if year_len < 4 || year_zeros_end == year_len {
+        return None;
+    }
+    // skip zeros, then save the year
+    let year = slice::range_get(s, year_zeros_end, year_len);
+    Some((year, year_len))
+}
+
 /// Parse the last 4 (Least Significant Digits) of the given number, run `f` or return default if 0.
 macro_rules! last_four_digits_or {
     ($e:expr, |$v:ident $(: u16)?| $f:expr, $default:expr) => {{
@@ -247,23 +266,23 @@ impl core::fmt::Display for YearMonthError {
 
 impl core::error::Error for YearMonthError {}
 
-/// Take a `Fn(s: &[u8]) -> (NON_ZERO_YEAR, len, s)` and parse `yyyy-mm`.
+/// Parse `yyyy-mm`.
 macro_rules! year_month_prefix {
-    (|$s:ident| $expr:expr) => {{
+    ($s:ident) => {{
         let s = $s;
         if s.len() < 7 {
             return Err(YearMonthError::InputLen);
         }
 
-        let (non_zero_year, year_len, s) = $expr;
+        let Some((non_zero_year, year_len)) = year_prefix(s) else {
+            return Err(YearMonthError::YearInvalid);
+        };
 
-        // skip the dash which was checked before this
-        //
-        // the length was already checked
-        if s[0] != b'-' {
+        // skip the dash and 'W' (the length was already checked)
+        if s[year_len] != b'-' {
             return Err(YearMonthError::DashExpected);
         }
-        let s = s.split_at(1).1;
+        let s = s.split_at(year_len + 1).1;
 
         // exactly two digits for the month is required.
         if s.len() < 2 {
@@ -307,19 +326,7 @@ macro_rules! year_month_prefix {
 /// [valid month string]:
 /// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-month-string
 pub const fn year_month_prefix(s: &[u8]) -> Result<(&[u8], u8, usize), YearMonthError> {
-    year_month_prefix!(|s| {
-        // end == len => year is 0
-        let (year_zeros_end, year_len) = num::prefix_span(s, 10);
-        if year_len < 4 || year_zeros_end == year_len {
-            return Err(YearMonthError::YearInvalid);
-        }
-        // skip zeros, then save the year and the rest
-        let (year, s) = s
-            .split_at(year_zeros_end)
-            .1
-            .split_at(year_len - year_zeros_end);
-        (year, year_len, s)
-    })
+    year_month_prefix!(s)
 }
 
 macro_rules! year_month {
@@ -484,6 +491,19 @@ pub const fn decode(s: &[u8]) -> Result<(&[u8], u8, u8), DateError> {
 pub mod u8 {
     use super::*;
 
+    /// [`super::year_prefix`] as an [`prim@u8`] with an offset of 1970 (0 is 1970).
+    pub const fn year_prefix(s: &[u8]) -> Option<(u8, usize)> {
+        // end == len => year is 0
+        let (year, year_len) = num::u16::prefix(s, 10);
+        // 2225 is the max: 1970 + u8::MAX
+        if year_len < 4 || year < 1970 || year > 2225 {
+            return None;
+        }
+        let year_offset = (year - 1970) as u8;
+
+        Some((year_offset, year_len))
+    }
+
     /// Parse a year only if it fits [`prim@u8`] (0 is 1970) (see [`super::year_month_prefix`]).
     ///
     /// # Examples
@@ -518,17 +538,7 @@ pub mod u8 {
     /// assert_eq!(year_month_prefix(b"1971-12INVALID"),  Ok((1, 12, 7)));
     /// ```
     pub const fn year_month_prefix(s: &[u8]) -> Result<(u8, u8, usize), YearMonthError> {
-        year_month_prefix!(|s| {
-            // end == len => year is 0
-            let (year, year_len) = num::u16::prefix(s, 10);
-            // 2225 is the max: 1970 + u8::MAX
-            if year_len < 4 || year < 1970 || year > 2225 {
-                return Err(YearMonthError::YearInvalid);
-            }
-            let year_offset = (year - 1970) as u8;
-
-            (year_offset, year_len, s.split_at(year_len).1)
-        })
+        year_month_prefix!(s)
     }
 
     /// See [`super::year_month`].
@@ -604,6 +614,16 @@ pub mod u8 {
 /// "offset" refers to the +255 behavior in [`mod@u8`].
 macro_rules! date_fns_no_offset {
     ($ty:ident) => {
+        /// See [`super::year_prefix`].
+        pub const fn year_prefix(s: &[u8]) -> Option<($ty, usize)> {
+            let (year, year_len) = num::$ty::prefix(s, 10);
+            // if not 4 digits or if the year is 0 (invalid in the standard)
+            if year_len < 4 || year == 0 {
+                return None;
+            }
+            Some((year, year_len))
+        }
+
         /// See [`super::prefix`].
         pub const fn prefix(s: &[u8]) -> Result<($ty, u8, u8, usize), DateError> {
             prefix!(s)
@@ -616,14 +636,7 @@ macro_rules! date_fns_no_offset {
 
         /// See [`super::year_month_prefix`].
         pub const fn year_month_prefix(s: &[u8]) -> Result<($ty, u8, usize), YearMonthError> {
-            year_month_prefix!(|s| {
-                // end == len => year is 0
-                let (year, year_len) = num::$ty::prefix(s, 10);
-                if year_len < 4 || year == 0 {
-                    return Err(YearMonthError::YearInvalid);
-                }
-                (year, year_len, s.split_at(year_len).1)
-            })
+            year_month_prefix!(s)
         }
 
         /// See [`super::year_month`].
