@@ -239,6 +239,127 @@ pub const fn is_weeks_53(year: &[u8]) -> bool {
     last_four_digits_or!(year, |year| u16::is_weeks_53(year), false)
 }
 
+/// Errors thrown when parsing months and years (see [`year_week`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum YearWeekError {
+    /// Expected an input of at least 4 (year) + 2 (dash then 'W', `"-W"`) + 2 (weeks) characters.
+    InputLen,
+    /// Expected a year of at least 4 digits and less than what the datatype can hold.
+    YearInvalid,
+    /// Expected a dash and then a W to separate year and week.
+    DashWExpected,
+    /// Expected a week value valid for the year between `1..=53`.
+    WeekInvalid,
+}
+
+impl core::fmt::Display for YearWeekError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InputLen => "input is too short or long for a 'yyyy-Www' date",
+            Self::YearInvalid => "expected a non-zero year as a four or more ASCII digit year",
+            Self::DashWExpected => "expected a '-W' to separate 'yyyy-Www'",
+            Self::WeekInvalid => {
+                "expected a two ASCII digit week between 1 and 53, valid for the year"
+            }
+        }
+        .fmt(f)
+    }
+}
+
+impl core::error::Error for YearWeekError {}
+
+/// Parse `yyyy-Www`.
+macro_rules! year_week_prefix {
+    ($s:ident) => {{
+        let s = $s;
+        if s.len() < 8 {
+            return Err(YearWeekError::InputLen);
+        }
+
+        let Some((non_zero_year, year_len)) = year_prefix(s) else {
+            return Err(YearWeekError::YearInvalid);
+        };
+
+        // skip the dash and 'W' (the length was already checked)
+        if s[year_len] != b'-' || s[year_len + 1] != b'W' {
+            return Err(YearWeekError::DashWExpected);
+        }
+        let s = s.split_at(year_len + 2).1;
+
+        // exactly two digits for the month is required.
+        if s.len() < 2 {
+            return Err(YearWeekError::WeekInvalid);
+        }
+
+        // do not go till the end of the text, only the next two digits matter
+        let Some(week @ 1..=53) = num::u8::decode(s.split_at(2).0, 10) else {
+            return Err(YearWeekError::WeekInvalid);
+        };
+        if week == 53 && !is_weeks_53(non_zero_year) {
+            return Err(YearWeekError::WeekInvalid);
+        }
+
+        Ok((non_zero_year, week, year_len + 1 + 3))
+    }};
+}
+
+/// Return the `yyyy-Www` [valid week string] where year in `1..` and week in `1..=53` at prefix.
+///
+/// # Examples
+///
+/// ```rust
+/// # use constrs::date::{year_week_prefix, YearWeekError::*};
+/// assert_eq!(year_week_prefix(b""),           Err(InputLen));
+/// assert_eq!(year_week_prefix(b"-"),          Err(InputLen));
+/// assert_eq!(year_week_prefix(b"0001"),       Err(InputLen));
+/// assert_eq!(year_week_prefix(b"0001-"),      Err(InputLen));
+/// assert_eq!(year_week_prefix(b"0001-W"),     Err(InputLen));
+/// assert_eq!(year_week_prefix(b"001-W06"),    Err(InputLen));
+/// assert_eq!(year_week_prefix(b"0001-W1"),    Err(InputLen));
+/// assert_eq!(year_week_prefix(b"0001-06"),    Err(InputLen));
+/// assert_eq!(year_week_prefix(b"001-W006"),   Err(YearInvalid));
+/// assert_eq!(year_week_prefix(b"0000-W06"),   Err(YearInvalid));
+/// assert_eq!(year_week_prefix(b"0001-w06"),   Err(DashWExpected));
+/// assert_eq!(year_week_prefix(b"00001-W6"),   Err(WeekInvalid));
+/// assert_eq!(year_week_prefix(b"0001-W006"),  Err(WeekInvalid));
+/// assert_eq!(year_week_prefix(b"0001-W00"),   Err(WeekInvalid));
+/// assert_eq!(year_week_prefix(b"0001-W54"),   Err(WeekInvalid));
+/// assert_eq!(year_week_prefix(b"0001-W01"),   Ok((b"1".as_slice(), 01, 8)));
+/// assert_eq!(year_week_prefix(b"0001-W06"),   Ok((b"1".as_slice(), 06, 8)));
+/// assert_eq!(year_week_prefix(b"0001-W12"),   Ok((b"1".as_slice(), 12, 8)));
+/// assert_eq!(year_week_prefix(b"2004-W52"),   Ok((b"2004".as_slice(), 52, 8)));
+/// assert_eq!(year_week_prefix(b"2004-W53"),   Ok((b"2004".as_slice(), 53, 8)));
+/// assert_eq!(year_week_prefix(b"2005-W52"),   Ok((b"2005".as_slice(), 52, 8)));
+/// assert_eq!(year_week_prefix(b"2005-W53"),   Err(WeekInvalid));
+/// assert_eq!(year_week_prefix(b"000000000002-W12"), Ok((b"2".as_slice(), 12, 16)));
+/// assert_eq!(year_week_prefix(b"0001-W12INVALID"),  Ok((b"1".as_slice(), 12, 8)));
+/// ```
+///
+/// [valid week string]:
+/// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-week-string
+pub const fn year_week_prefix(s: &[u8]) -> Result<(&[u8], u8, usize), YearWeekError> {
+    year_week_prefix!(s)
+}
+
+macro_rules! year_week {
+    ($s:expr) => {{
+        let s = $s;
+        match year_week_prefix(s) {
+            Ok((v1, v2, len)) if len == s.len() => Ok((v1, v2)),
+            Ok(_) => Err(YearWeekError::InputLen),
+            Err(e) => Err(e),
+        }
+    }};
+}
+
+/// Return the `yyyy-Www` [valid week string] where year in `1..` and week in `1..=53`.
+///
+/// [valid week string]:
+/// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-month-string
+pub const fn year_week(s: &[u8]) -> Result<(&[u8], u8), YearWeekError> {
+    year_week!(s)
+}
+
 /// Errors thrown when parsing months and years (see [`year_month`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum YearMonthError {
@@ -546,6 +667,16 @@ pub mod u8 {
         year_month!(s)
     }
 
+    /// See [`super::year_week_prefix`].
+    pub const fn year_week_prefix(s: &[u8]) -> Result<(u8, u8, usize), YearWeekError> {
+        year_week_prefix!(s)
+    }
+
+    /// See [`super::year_week_prefix`].
+    pub const fn year_week(s: &[u8]) -> Result<(u8, u8), YearWeekError> {
+        year_week!(s)
+    }
+
     /// See [`super::days_in_month`].
     pub const fn days_in_month(year: u8, month: u8) -> u8 {
         u16::days_in_month(year as u16 + 1970, month)
@@ -642,6 +773,16 @@ macro_rules! date_fns_no_offset {
         /// See [`super::year_month`].
         pub const fn year_month(s: &[u8]) -> Result<($ty, u8), YearMonthError> {
             year_month!(s)
+        }
+
+        /// See [`super::year_week_prefix`].
+        pub const fn year_week_prefix(s: &[u8]) -> Result<($ty, u8, usize), YearWeekError> {
+            year_week_prefix!(s)
+        }
+
+        /// See [`super::year_week_prefix`].
+        pub const fn year_week(s: &[u8]) -> Result<($ty, u8), YearWeekError> {
+            year_week!(s)
         }
 
         /// See [`super::days_in_month`].
