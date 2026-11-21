@@ -1011,6 +1011,9 @@ pub mod u16 {
 pub mod u32 {
     use super::*;
 
+    // TODO add "year_month_to/from_timestamp" functions
+    // TODO add "year_week_to/from_timestamp" functions
+
     /// Return the timestamp of the date in seconds since "1970-01-01T00:00:00.0Z".
     ///
     /// The year must no have any prefixed zeros. Month must be in `1..=12` and the day of the month
