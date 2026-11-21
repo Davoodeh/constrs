@@ -821,13 +821,81 @@ macro_rules! date_fns_no_offset {
         /// digits of a year number.
         ///
         /// This returns false for year 0 which is invalid.
+        ///
+        /// # Examples
+        ///
+        /// ```rust
+        #[doc = concat!("# use constrs::date::", stringify!($ty), "::is_weeks_53;")]
+        /// assert_eq!(is_weeks_53(0),    false);
+        /// assert_eq!(is_weeks_53(1),    false);
+        /// assert_eq!(is_weeks_53(2),    false);
+        /// assert_eq!(is_weeks_53(3),    false);
+        /// assert_eq!(is_weeks_53(4),    true); // Thursday start
+        /// assert_eq!(is_weeks_53(20),   true); // Wednesday start and leap
+        /// assert_eq!(is_weeks_53(2004), true);
+        /// assert_eq!(is_weeks_53(2005), false);
+        /// ```
         pub const fn is_weeks_53(year: $ty) -> bool {
             if year == 0 {
                 return false;
             }
 
-            let days = (year - 1) * 365 + leaps_inclusive_to(year - 1);
-            let weekday = days % 7; // weekday of Jan 1st
+            // The days formula is `days = (year - 1) * 365 + leaps_inclusive_to(year - 1)`
+            // and overflow happens when `days > usize::MAX`.
+            // This implies
+            //
+            // Assuming `leaps_inclusive_to(y) = (y / 4) - (y / 100) + (y / 400)` (where "/" is
+            // division not "floor division") an estimate of the overflow boundary can be guessed.
+            //
+            // To solve for `year` (`y`) where `days <= usize::MAX`
+            // 1. `(y - 1) * 365 + ((y - 1) / 4) - ((y - 1) / 100) + ((y - 1) / 400)    = MAX`
+            // 2. `365y - 365    + ((100y - 100) - (4y - 4) + (y - 1)) / 400            = MAX`
+            // 3. `((365 * 400)y - 365 * 400 + (100y - 100) - (4y - 4) + (y - 1)) / 400 = MAX`
+            // 4. `(146097y - 146097) / 400 = MAX`
+            // 5. `146097y - 146097         = 400MAX`
+            // 6. `146097y                  = 400MAX + 146097`
+            // 7. `y = 1 + (400MAX / 146097)`
+            // 8. `y = 1 + 400 * MAX / 146097`
+            // 9. `y = 1 + 400 * floor(MAX / 146097) + (((MAX % 146097) * 400) / 146097)`
+            const MAX_ONE_STEP_YEAR: $ty = const {
+                // for u16: 146097 will produce invalid results so a cast of u128 is done:
+                const MAX: u128 = <$ty>::MAX as u128;
+                let q = MAX / 146097;
+                let r = MAX % 146097;
+                let a = q * 400;
+                let b = match r.checked_mul(400) {
+                    Some(v) => v / 146097,
+                    None => 0,
+                };
+                let result: u128 = 1 + a + b;
+
+                // tests:
+                if result > MAX {
+                    panic!("invalid");
+                }
+                _ = (result - 1) * 365 + u128::leaps_inclusive_to(result - 1);
+
+                // checked above to be valid
+                result as $ty
+            };
+
+            let leaps = leaps_inclusive_to(year - 1);
+            // do a simple calculation if does not overflow else do a complex multi-step division
+            // which is slower but does not overflow
+            let days = if year <= MAX_ONE_STEP_YEAR {
+                (year - 1) * 365 + leaps
+            } else {
+                // not to overflow, reorder with the aim of removing the *365 multiplier:
+                // 1. `( (year - 1) * 365          + leaps_inclusive_to(year - 1))     % 7`
+                // 2. `(((year - 1) * 365) % 7     + leaps_inclusive_to(year - 1) % 7) % 7`
+                // 3. `(((year - 1) % 7 * 365 % 7) + leaps_inclusive_to(year - 1) % 7) % 7`
+                // 4. `(((year - 1) % 7 * 1)       + leaps_inclusive_to(year - 1) % 7) % 7`
+                // 5. `( (year - 1) % 7            + leaps_inclusive_to(year - 1) % 7) % 7`
+                ((year - 1) % 7 + leaps % 7)
+            };
+            // weekday of Jan 1st
+            let weekday = days % 7;
+
 
             // is Thusday or (is Wednesday on a leap year)
             weekday == 3 || (weekday == 2 && is_leap(year))
