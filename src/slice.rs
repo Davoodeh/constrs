@@ -205,3 +205,35 @@ pub const fn split_at_chunk<T, const N: usize>(s: &[T], index: usize) -> Option<
     }
     None
 }
+
+/// Split a slice into two array references.
+///
+/// # Examples
+///
+/// ```rust
+/// # use constrs::slice::split_two_chunks;
+/// assert_eq!(split_two_chunks::<_, 4, 0>(b"0123"), Some((&[b'0', b'1', b'2', b'3'], &[])));
+/// assert_eq!(split_two_chunks::<_, 3, 1>(b"0123"), Some((&[b'0', b'1', b'2'], &[ b'3'])));
+/// assert_eq!(split_two_chunks::<_, 3, 2>(b"0123"), None); // invalid split sizes
+/// ```
+pub const fn split_two_chunks<T, const N1: usize, const N2: usize>(
+    s: &[T],
+) -> Option<(&[T; N1], &[T; N2])> {
+    let n = const {
+        // compile time check
+        match N1.checked_add(N2) {
+            Some(v) => v,
+            None => panic!("chunks are too large"),
+        }
+    };
+    if s.len() == n {
+        // SAFETY: checked for pointer validity, lifetime and count of elements.
+        return Some(unsafe {
+            (
+                &*(s.as_ptr() as *const _),
+                &*(s.as_ptr().add(N1) as *const _),
+            )
+        });
+    }
+    None
+}
