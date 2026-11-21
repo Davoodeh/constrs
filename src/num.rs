@@ -187,10 +187,14 @@ pub const fn zero_prefix_len(s: &[u8]) -> usize {
 
 /// Return the start after the leading zeros and the end of digits in a non-zero number.
 ///
+/// This implies that if both indices show the same number, the results is either empty/unparsed (in
+/// case of `(0, 0)`) or entirely made of zeros.
+///
 /// # Examples
 ///
 /// ```rust
 /// # use constrs::num::prefix_span;
+/// assert_eq!(prefix_span(b"a",    10), (0, 0));
 /// assert_eq!(prefix_span(b"",     10), (0, 0));
 /// assert_eq!(prefix_span(b"0",    10), (1, 1));
 /// assert_eq!(prefix_span(b"00",   10), (2, 2));
