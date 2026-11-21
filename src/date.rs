@@ -606,6 +606,41 @@ pub const fn decode(s: &[u8]) -> Result<(&[u8], u8, u8), DateError> {
     decode!(s)
 }
 
+/// Date functions that are common between "offset year" ([`mod@u8`], +255) and normal years
+macro_rules! date_fns_common {
+    ($ty:ident) => {
+        /// See [`super::year_month_prefix`].
+        pub const fn year_month_prefix(s: &[u8]) -> Result<($ty, u8, usize), YearMonthError> {
+            year_month_prefix!(s)
+        }
+
+        /// See [`super::year_month`].
+        pub const fn year_month(s: &[u8]) -> Result<($ty, u8), YearMonthError> {
+            year_month!(s)
+        }
+
+        /// See [`super::year_week_prefix`].
+        pub const fn year_week_prefix(s: &[u8]) -> Result<($ty, u8, usize), YearWeekError> {
+            year_week_prefix!(s)
+        }
+
+        /// See [`super::year_week_prefix`].
+        pub const fn year_week(s: &[u8]) -> Result<($ty, u8), YearWeekError> {
+            year_week!(s)
+        }
+
+        /// See [`super::prefix`].
+        pub const fn prefix(s: &[u8]) -> Result<($ty, u8, u8, usize), DateError> {
+            prefix!(s)
+        }
+
+        /// See [`super::decode`].
+        pub const fn decode(s: &[u8]) -> Result<($ty, u8, u8), DateError> {
+            decode!(s)
+        }
+    };
+}
+
 /// Helpers for parsing values in a space that only returns [`prim@u8`].
 ///
 /// This module assumes year 0 is 1970.
@@ -625,64 +660,14 @@ pub mod u8 {
         Some((year_offset, year_len))
     }
 
-    /// Parse a year only if it fits [`prim@u8`] (0 is 1970) (see [`super::year_month_prefix`]).
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use constrs::date::{u8::year_month_prefix, YearMonthError::*};
-    /// assert_eq!(year_month_prefix(b""),         Err(InputLen));
-    /// assert_eq!(year_month_prefix(b"-"),        Err(InputLen));
-    /// assert_eq!(year_month_prefix(b"0001"),     Err(InputLen));
-    /// assert_eq!(year_month_prefix(b"0001-"),    Err(InputLen));
-    /// assert_eq!(year_month_prefix(b"001-06"),   Err(InputLen));
-    /// assert_eq!(year_month_prefix(b"0001-1"),   Err(InputLen));
-    /// assert_eq!(year_month_prefix(b"001-006"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"0000-06"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"1969-01"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"1969-06"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"1969-12"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"2226-01"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"2226-06"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"2226-12"),  Err(YearInvalid));
-    /// assert_eq!(year_month_prefix(b"01971-6"),  Err(MonthInvalid));
-    /// assert_eq!(year_month_prefix(b"1971-006"), Err(MonthInvalid));
-    /// assert_eq!(year_month_prefix(b"1971-00"),  Err(MonthInvalid));
-    /// assert_eq!(year_month_prefix(b"1971-13"),  Err(MonthInvalid));
-    /// assert_eq!(year_month_prefix(b"1970-01"),  Ok((0, 01, 7)));
-    /// assert_eq!(year_month_prefix(b"1970-06"),  Ok((0, 06, 7)));
-    /// assert_eq!(year_month_prefix(b"1970-12"),  Ok((0, 12, 7)));
-    /// assert_eq!(year_month_prefix(b"2225-01"),  Ok((255, 01, 7)));
-    /// assert_eq!(year_month_prefix(b"2225-06"),  Ok((255, 06, 7)));
-    /// assert_eq!(year_month_prefix(b"2225-12"),  Ok((255, 12, 7)));
-    /// assert_eq!(year_month_prefix(b"000000001972-12"), Ok((2, 12, 15)));
-    /// assert_eq!(year_month_prefix(b"1971-12INVALID"),  Ok((1, 12, 7)));
-    /// ```
-    pub const fn year_month_prefix(s: &[u8]) -> Result<(u8, u8, usize), YearMonthError> {
-        year_month_prefix!(s)
-    }
-
-    /// See [`super::year_month`].
-    pub const fn year_month(s: &[u8]) -> Result<(u8, u8), YearMonthError> {
-        year_month!(s)
-    }
-
-    /// See [`super::year_week_prefix`].
-    pub const fn year_week_prefix(s: &[u8]) -> Result<(u8, u8, usize), YearWeekError> {
-        year_week_prefix!(s)
-    }
-
-    /// See [`super::year_week_prefix`].
-    pub const fn year_week(s: &[u8]) -> Result<(u8, u8), YearWeekError> {
-        year_week!(s)
-    }
+    date_fns_common!(u8);
 
     /// See [`super::days_in_month`].
     pub const fn days_in_month(year: u8, month: u8) -> u8 {
         u16::days_in_month(year as u16 + 1970, month)
     }
 
-    /// Is this year a leap year?
+    /// See [`super::is_leap`].
     pub const fn is_leap(year: u8) -> bool {
         u16::is_leap(year as u16 + 1970)
     }
@@ -724,16 +709,6 @@ pub mod u8 {
         u16::leaps_inclusive_to(year as u16 + 1970)
     }
 
-    /// See [`super::prefix`].
-    pub const fn prefix(s: &[u8]) -> Result<(u8, u8, u8, usize), DateError> {
-        prefix!(s)
-    }
-
-    /// See [`super::decode`].
-    pub const fn decode(s: &[u8]) -> Result<(u8, u8, u8), DateError> {
-        decode!(s)
-    }
-
     /// Return whether the given year is a 53 week year (true) or a 52 week year (false).
     ///
     /// See [`u16::is_weeks_53`] for more.
@@ -753,36 +728,6 @@ macro_rules! date_fns_no_offset {
                 return None;
             }
             Some((year, year_len))
-        }
-
-        /// See [`super::prefix`].
-        pub const fn prefix(s: &[u8]) -> Result<($ty, u8, u8, usize), DateError> {
-            prefix!(s)
-        }
-
-        /// See [`super::decode`].
-        pub const fn decode(s: &[u8]) -> Result<($ty, u8, u8), DateError> {
-            decode!(s)
-        }
-
-        /// See [`super::year_month_prefix`].
-        pub const fn year_month_prefix(s: &[u8]) -> Result<($ty, u8, usize), YearMonthError> {
-            year_month_prefix!(s)
-        }
-
-        /// See [`super::year_month`].
-        pub const fn year_month(s: &[u8]) -> Result<($ty, u8), YearMonthError> {
-            year_month!(s)
-        }
-
-        /// See [`super::year_week_prefix`].
-        pub const fn year_week_prefix(s: &[u8]) -> Result<($ty, u8, usize), YearWeekError> {
-            year_week_prefix!(s)
-        }
-
-        /// See [`super::year_week_prefix`].
-        pub const fn year_week(s: &[u8]) -> Result<($ty, u8), YearWeekError> {
-            year_week!(s)
         }
 
         /// See [`super::days_in_month`].
@@ -1048,12 +993,16 @@ macro_rules! date_fns_no_offset {
 pub mod usize {
     use super::*;
 
+    date_fns_common!(usize);
+
     date_fns_no_offset!(usize);
 }
 
 /// Helpers for parsing values in a space that only returns [`prim@u16`].
 pub mod u16 {
     use super::*;
+
+    date_fns_common!(u16);
 
     date_fns_no_offset!(u16);
 }
@@ -1289,6 +1238,8 @@ pub mod u32 {
         Some((year, month, day))
     }
 
+    date_fns_common!(u32);
+
     date_fns_no_offset!(u32);
 }
 
@@ -1296,12 +1247,16 @@ pub mod u32 {
 pub mod u64 {
     use super::*;
 
+    date_fns_common!(u64);
+
     date_fns_no_offset!(u64);
 }
 
 /// Helpers for parsing values in a space that only returns [`prim@u128`].
 pub mod u128 {
     use super::*;
+
+    date_fns_common!(u128);
 
     date_fns_no_offset!(u128);
 }
