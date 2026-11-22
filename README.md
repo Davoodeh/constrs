@@ -10,7 +10,7 @@ existence of this crate is the niche of `const`-time usage.
 This crate grew way larger than intented but the general goal almost always
 remained the same:
 
-- target Minimum Supported Rust Version (MSRV) of `1.85`
+- target Minimum Supported Rust Version (MSRV) of `1.85.0`
 - remain `const`-time (functions are `const`)
 - do not require heap allocation
 - do not require Rust's standard library (`no_std`)
@@ -19,7 +19,7 @@ remained the same:
 - do not use specialized types and Rust shenanigans when possible (to ease FFIs)
 - expose fine-grained and specialized functions
 
-If you do not have peformance critical needs, can afford the `std` or
+If you do not have peformance critical needs, can afford the `std`, `1.85<` or
 computations not in `const` or any combination of the previous criteria, do not
 use this library and prefer other mature implementations like Rust's standard
 library. Hopefully, once the standard library has more stable `const`
@@ -60,12 +60,19 @@ for the dependent code using this library.
 See the [`CHANGELOG`](https://docs.rs/crate/constrs/latest/source/CHANGELOG.md)
 file in the source for the news about each release.
 
+The latest `stable` toolchain (mentioned anywhere in this project) was tested to
+be `1.100.0`.
+
 ## Contribution
 
 This repository uses `prek` for commits and quality check.  Install `prek` with
 `cargo install prek` or any other way suited and make sure to install its
 configurations on the repository with `prek install` before commiting any
 changes.
+
+The general aim of the crate is to have no `clippy` warnings on the `stable`
+(latest Rust version) and also `1.85.0`. The rest of the conditions (tests,
+docs, code format and else) only match for `stable`.
 
 ## License
 

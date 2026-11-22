@@ -197,11 +197,12 @@ pub const unsafe fn range_inclusive_get_unchecked<T>(s: &[T], start: usize, end:
 /// assert_eq!(split_at_chunk::<_, 1>(b"012345", 6), None); // invalid index
 /// ```
 pub const fn split_at_chunk<T, const N: usize>(s: &[T], index: usize) -> Option<&[T; N]> {
-    if let Some(leftover) = s.len().checked_sub(index)
-        && N <= leftover
-    {
-        // SAFETY: checked for pointer validity, lifetime and count of elements.
-        return Some(unsafe { &*(s.as_ptr().add(index) as *const _) });
+    // HACK(E0658, 1.88.0<): ifs can merge with `&&`
+    if let Some(leftover) = s.len().checked_sub(index) {
+        if N <= leftover {
+            // SAFETY: checked for pointer validity, lifetime and count of elements.
+            return Some(unsafe { &*(s.as_ptr().add(index) as *const _) });
+        }
     }
     None
 }

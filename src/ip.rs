@@ -625,15 +625,13 @@ pub mod v6 {
             let mut length = 0;
 
             // 6.4: while length < 4 and the next character exists and is an ASCII hex
-            while length < 4
-                && pointer < s.len()
-                && let Some(new_value) = match s[pointer] {
-                    v @ b'0'..=b'9' => Some(v - b'0'),
-                    v @ b'a'..=b'f' => Some(v - b'a' + 10),
-                    v @ b'A'..=b'F' => Some(v - b'A' + 10),
-                    _ => None,
-                }
-            {
+            while length < 4 && pointer < s.len() {
+                let new_value = match s[pointer] {
+                    v @ b'0'..=b'9' => v - b'0',
+                    v @ b'a'..=b'f' => v - b'a' + 10,
+                    v @ b'A'..=b'F' => v - b'A' + 10,
+                    _ => break,
+                };
                 value = (value * 0x10) + (new_value as u16);
                 pointer += 1;
                 length += 1;
@@ -778,10 +776,11 @@ pub mod v6 {
         };
 
         let mut i = 0;
-        while let Some(c) = slice::get(s, i)
-            && *c != b']'
-        {
-            i += 1;
+        // HACK(E0658, 1.88.0<): ifs can merge with `&&`
+        while let Some(c) = slice::get(s, i) {
+            if *c != b']' {
+                i += 1;
+            }
         }
         Some(match slice::get(s, i) {
             Some(&b']') => match parse(slice::range_get(s, 1, i - 1)) {

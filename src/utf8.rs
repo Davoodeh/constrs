@@ -18,7 +18,7 @@ pub struct Chars<'a> {
     validity: Option<bool>,
 }
 
-impl<'a> Iterator for Chars<'a> {
+impl Iterator for Chars<'_> {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -31,7 +31,7 @@ impl<'a> Iterator for Chars<'a> {
     }
 }
 
-impl<'a> core::iter::FusedIterator for Chars<'a> {}
+impl core::iter::FusedIterator for Chars<'_> {}
 
 impl<'a> Chars<'a> {
     /// Get a copy of the reference passed to this parser.

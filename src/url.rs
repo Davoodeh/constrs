@@ -59,10 +59,11 @@ impl Unit {
             return Some(Self::PercentEncoding(v));
         }
 
-        if let Ok(c) = utf8::prefix(s)
-            && is_codepoint(c)
-        {
-            return Some(Self::Codepoint(c));
+        // HACK(E0658, 1.88.0<): ifs can merge with `&&`
+        if let Ok(c) = utf8::prefix(s) {
+            if is_codepoint(c) {
+                return Some(Self::Codepoint(c));
+            }
         }
 
         None

@@ -51,9 +51,11 @@ pub const fn is_atext(byte: u8) -> bool {
 /// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-e-mail-address
 pub const fn before_at_prefix_len(s: &[u8]) -> usize {
     let mut i = 0;
-    while let Some(&c) = slice::get(s, i)
-        && (c == b'.' || is_atext(c))
-    {
+    // HACK(E0658, 1.88.0<): ifs can merge with `&&`
+    while let Some(&c) = slice::get(s, i) {
+        if !(c == b'.' || is_atext(c)) {
+            break;
+        }
         i += 1;
     }
     i
@@ -79,10 +81,11 @@ pub const fn before_at_prefix_len(s: &[u8]) -> usize {
 /// [valid email]:
 /// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-e-mail-address
 pub const fn over_at_prefix_len(s: &[u8]) -> usize {
-    if let len @ 1.. = before_at_prefix_len(s)
-        && let Some(&b'@') = slice::get(s, len)
-    {
-        return len + 1;
+    // HACK(E0658, 1.88.0<): ifs can merge with `&&`
+    if let len @ 1.. = before_at_prefix_len(s) {
+        if let Some(&b'@') = slice::get(s, len) {
+            return len + 1;
+        }
     }
     0
 }
@@ -142,12 +145,9 @@ pub const fn label_prefix_len(s: &[u8]) -> usize {
 
     // if 62 are parsed to be valid, require the last (63th) to be alphanumeric
     // if the last is not alphanumeric, the previous alphanumeric is the end.
-    1 + (if let Some(c) = slice::get(s, end)
-        && c.is_ascii_alphanumeric()
-    {
-        i
-    } else {
-        last_acceptable_i
+    1 + (match slice::get(s, end) {
+        Some(c) if c.is_ascii_alphanumeric() => i,
+        _ => last_acceptable_i,
     })
 }
 

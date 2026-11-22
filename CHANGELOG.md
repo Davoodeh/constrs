@@ -1,5 +1,12 @@
 # `0.1.5`
 
+## Fix
+
+- crate not being compiled on `1.85.0` (before `1.88.0`) which was the claimed
+  `rust-version` (`E0658` without the [`let-chains`
+  feature](https://github.com/rust-lang/rust/pull/132833)).  A zero `clippy`
+  warning on both `1.85.0` and `stable` is now guaranteed.
+
 ## Add
 
 - `slice::as_array` which does as its standard counterpart.
