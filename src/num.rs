@@ -723,7 +723,7 @@ pub mod u8 {
     /// assert_eq!(decode(b"\0",    10), None); // NUL
     /// assert_eq!(decode(b"0x0A",  10), None);
     /// assert_eq!(decode(b"0x0A",  10), None);
-    /// assert_eq!(decode(b"%0A",  10), None);
+    /// assert_eq!(decode(b"%0A",  10),  None);
     /// ```
     pub const fn decode(s: &[u8], radix: u8) -> Option<u8> {
         decode!(prefix, s, radix)
