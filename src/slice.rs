@@ -237,3 +237,12 @@ pub const fn split_two_chunks<T, const N1: usize, const N2: usize>(
     }
     None
 }
+
+/// A copy of the standard `slice::as_array` (prefer the standardized, only in `1.93.0` and higher).
+pub const fn as_array<T, const N: usize>(s: &[T]) -> Option<&[T; N]> {
+    if s.len() == N {
+        // SAFETY: cast is valid only if the lengths match
+        return Some(unsafe { &*(s.as_ptr() as *const _) });
+    }
+    None
+}

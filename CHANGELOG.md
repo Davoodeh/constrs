@@ -1,3 +1,9 @@
+# `0.1.5`
+
+## Add
+
+- `slice::as_array` which does as its standard counterpart.
+
 # `0.1.4`
 
 ## Add

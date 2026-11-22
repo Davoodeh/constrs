@@ -10,6 +10,7 @@ existence of this crate is the niche of `const`-time usage.
 This crate grew way larger than intented but the general goal almost always
 remained the same:
 
+- target Minimum Supported Rust Version (MSRV) of `1.85`
 - remain `const`-time (functions are `const`)
 - do not require heap allocation
 - do not require Rust's standard library (`no_std`)
