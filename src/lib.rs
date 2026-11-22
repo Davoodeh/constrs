@@ -1,4 +1,4 @@
-#![doc = include_str!("../README.md")]
+#![cfg_attr(doc, doc = include_str!("../README.md"))]
 #![cfg_attr(not(test), no_main, no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
