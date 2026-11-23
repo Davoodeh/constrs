@@ -185,10 +185,12 @@ pub const fn zero_prefix_len(s: &[u8]) -> usize {
     i
 }
 
-/// Return the start after the leading zeros and the end of digits in a non-zero number.
+/// Return the end of the leading zeros and the end of the valid digits.
 ///
 /// This implies that if both indices show the same number, the results is either empty/unparsed (in
 /// case of `(0, 0)`) or entirely made of zeros.
+///
+/// If all the digits are required to be valid (`s.len() == result.1`), use [`span`].
 ///
 /// # Examples
 ///
@@ -208,6 +210,31 @@ pub const fn prefix_span(s: &[u8], radix: u8) -> (usize, usize) {
     let zeros = zero_prefix_len(s);
     let non_zeros = prefix_len(s.split_at(zeros).1, radix);
     (zeros, zeros + non_zeros)
+}
+
+/// Return the end of the leading zeros only if the digits are all valid.
+///
+/// If the string needs not to be valid until the very end and the prefix is the concern, use
+/// [`prefix_span`].
+///
+/// ```rust
+/// # use constrs::num::span;
+/// assert_eq!(span(b"a",    10), None);
+/// assert_eq!(span(b"",     10), Some(0));
+/// assert_eq!(span(b"0",    10), Some(1));
+/// assert_eq!(span(b"00",   10), Some(2));
+/// assert_eq!(span(b"10",   10), Some(0));
+/// assert_eq!(span(b"10A",  10), None);
+/// assert_eq!(span(b"010",  10), Some(1));
+/// assert_eq!(span(b"010A", 10), None);
+/// assert_eq!(span(b"999999999", 10), Some(0));
+/// ```
+pub const fn span(s: &[u8], radix: u8) -> Option<usize> {
+    let (zeros, len) = prefix_span(s, radix);
+    if s.len() != len {
+        return None;
+    }
+    Some(zeros)
 }
 
 /// Return the length of the initial sequence of [`digit`]s with a non-zero value.

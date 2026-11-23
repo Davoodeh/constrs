@@ -10,6 +10,7 @@
 ## Add
 
 - `slice::as_array` which does as its standard counterpart.
+- `num::span` function as a peer for `num::prefix_span`.
 
 # `0.1.4`
 
