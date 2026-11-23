@@ -131,8 +131,8 @@ pub const fn label_prefix_len(s: &[u8]) -> usize {
     // case, remember what was the last alphanumeric to revert back
     let mut last_acceptable_i = 0;
 
-    // a maximum of 61 characters are acceptable before the start and the end
-    let end = if s.len() < 62 { s.len() } else { 62 };
+    // no more than 63 characters are allowed
+    let end = if s.len() < 63 { s.len() } else { 63 };
     let mut i = 1;
     while i < end {
         match s[i] {
@@ -145,10 +145,7 @@ pub const fn label_prefix_len(s: &[u8]) -> usize {
 
     // if 62 are parsed to be valid, require the last (63th) to be alphanumeric
     // if the last is not alphanumeric, the previous alphanumeric is the end.
-    1 + (match slice::get(s, end) {
-        Some(c) if c.is_ascii_alphanumeric() => i,
-        _ => last_acceptable_i,
-    })
+    1 + last_acceptable_i
 }
 
 /// Get the length of the valid prefix of (after `'@'`) `$label $(. $labels)*` (0 is invalid).

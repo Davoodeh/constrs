@@ -373,7 +373,7 @@ mod tests {
                             buf.len(),
                             parsed.len(),
                             "text was parsed successfully while it must have \
-                                             failed: {:X?}={v:?}",
+                             failed: {:X?}={v:?}",
                             buf,
                         );
                     }
