@@ -108,11 +108,28 @@ pub const fn range_get<T>(s: &[T], start: usize, end: usize) -> &[T] {
     }
 }
 
+/// [`range_get`] but mutable (same as `&mut s[start..end]`).
+pub const fn range_get_mut<T>(s: &mut [T], start: usize, end: usize) -> &mut [T] {
+    match range_get_checked_mut(s, start, end) {
+        Some(v) => v,
+        None => panic!("`0 <= start <= end <= len` violated"),
+    }
+}
+
 /// [`range_get`] but not panicking.
 pub const fn range_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&[T]> {
     if start <= end && end <= s.len() {
         // SAFETY: Checked `0 <= start <= end <= len`
         return Some(unsafe { range_get_unchecked(s, start, end) });
+    }
+    None
+}
+
+/// [`range_get_checked`] but mutable (same as non-panicking `&mut s[start..end]`).
+pub const fn range_get_checked_mut<T>(s: &mut [T], start: usize, end: usize) -> Option<&mut [T]> {
+    if start <= end && end <= s.len() {
+        // SAFETY: Checked `0 <= start <= end <= len`
+        return Some(unsafe { range_get_unchecked_mut(s, start, end) });
     }
     None
 }
@@ -125,6 +142,16 @@ pub const fn range_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&
 pub const unsafe fn range_get_unchecked<T>(s: &[T], start: usize, end: usize) -> &[T] {
     // SAFETY: caller already promised validity
     unsafe { core::slice::from_raw_parts(s.as_ptr().add(start), end.unchecked_sub(start)) }
+}
+
+/// Get `&mut s[start..end]` without any checks (see [`range_get_mut`]).
+///
+/// # Safety
+///
+/// The caller must guarantee the following: `0 <= start <= end <= len`.
+pub const unsafe fn range_get_unchecked_mut<T>(s: &mut [T], start: usize, end: usize) -> &mut [T] {
+    // SAFETY: caller already promised validity
+    unsafe { core::slice::from_raw_parts_mut(s.as_mut_ptr().add(start), end.unchecked_sub(start)) }
 }
 
 /// Return `&s[start..=end]` in const.
@@ -164,6 +191,14 @@ pub const fn range_inclusive_get<T>(s: &[T], start: usize, end: usize) -> &[T] {
     }
 }
 
+/// [`range_inclusive_get`] but mutable (same as `&mut s[start..=end]`).
+pub const fn range_inclusive_get_mut<T>(s: &mut [T], start: usize, end: usize) -> &mut [T] {
+    match range_inclusive_get_checked_mut(s, start, end) {
+        Some(v) => v,
+        None => panic!("`0 <= start <= end + 1 <= len` violated"),
+    }
+}
+
 /// [`range_inclusive_get`] but not panicking.
 pub const fn range_inclusive_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&[T]> {
     // `end < s.len()` strictly smaller so `end + 1` can happen
@@ -178,6 +213,24 @@ pub const fn range_inclusive_get_checked<T>(s: &[T], start: usize, end: usize) -
     range_get_checked(s, start, end)
 }
 
+/// [`range_inclusive_get`] but mutable (same as non-panicking `&mut s[start..=end]`).
+pub const fn range_inclusive_get_checked_mut<T>(
+    s: &mut [T],
+    start: usize,
+    end: usize,
+) -> Option<&mut [T]> {
+    // `end < s.len()` strictly smaller so `end + 1` can happen
+    let Some(end) = end.checked_add(1) else {
+        // TODO when the version is bumped past 1.95, add `core::hint::cold_path()` here
+        //      this basically never happens naturally unless something is very wrong.
+        //      indices are naturally below or equal [`isize::MAX`] even for [`u8`] which is half
+        //      the [`usize::MAX`] that makes this return [`None`].
+        // core::hint::cold_path();
+        return None;
+    };
+    range_get_checked_mut(s, start, end)
+}
+
 /// Get `&s[start..=end]` without any checks (see [`range_inclusive_get`]).
 ///
 /// # Safety
@@ -186,6 +239,20 @@ pub const fn range_inclusive_get_checked<T>(s: &[T], start: usize, end: usize) -
 pub const unsafe fn range_inclusive_get_unchecked<T>(s: &[T], start: usize, end: usize) -> &[T] {
     // SAFETY: caller already promised validity
     unsafe { range_get_unchecked(s, start, end.unchecked_add(1)) }
+}
+
+/// Get `&s[start..=end]` without any checks (see [`range_inclusive_get`]).
+///
+/// # Safety
+///
+/// The caller must guarantee the following: `0 <= start <= end + 1 <= len`.
+pub const unsafe fn range_inclusive_get_unchecked_mut<T>(
+    s: &mut [T],
+    start: usize,
+    end: usize,
+) -> &mut [T] {
+    // SAFETY: caller already promised validity
+    unsafe { range_get_unchecked_mut(s, start, end.unchecked_add(1)) }
 }
 
 /// Split a chunk at the given index.
@@ -255,6 +322,15 @@ pub const fn as_array<T, const N: usize>(s: &[T]) -> Option<&[T; N]> {
     if s.len() == N {
         // SAFETY: cast is valid only if the lengths match
         return Some(unsafe { &*(s.as_ptr() as *const _) });
+    }
+    None
+}
+
+/// A copy of the `slice::as_mut_array` (prefer the standardized, only in `1.93.0` and higher).
+pub const fn as_mut_array<T, const N: usize>(s: &mut [T]) -> Option<&mut [T; N]> {
+    if s.len() == N {
+        // SAFETY: cast is valid only if the lengths match
+        return Some(unsafe { &mut *(s.as_mut_ptr() as *mut _) });
     }
     None
 }

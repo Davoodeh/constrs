@@ -9,7 +9,8 @@
 
 ## Add
 
-- `slice::as_array` which does as its standard counterpart.
+- `slice::as_(mut_)?array` which does as its standard counterpart.
+- `slice::range_(inclusive_)?get_(un)?checked_mut` functions.
 - `slice::fill_copy` function.
 - `num::*::min` and `num::*::max` for types implementing `core::cmp::Ord`
   (integers).
