@@ -10,6 +10,108 @@
 
 use crate::{num, slice::i};
 
+/// Errors thrown when parsing time (see [`time_prefix`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeError {
+    /// Expected an input of at least 2 (hour) + 1 (':') + 2 (minute) characters.
+    InputLen,
+    /// Expected an hour between 0..=23.
+    HourInvalid,
+    /// Expected a separator after hour.
+    HourSeparatorExpected,
+    /// Expected an hour between 0..=59.
+    MinuteInvalid,
+    /// Expected an minute between 0..=59.
+    SecondInvalid,
+    /// Expected a separator after minute.
+    MinuteSeparatorExpected,
+    /// Expected the dot and the decimal after seconds or the extra characters removed.
+    DecimalInvalid,
+}
+
+impl core::fmt::Display for TimeError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::InputLen => "input is too short or long for a time ('hh:mm')",
+            Self::HourInvalid => "expected an hour between 0 and 23 (inclusive)",
+            Self::HourSeparatorExpected => "expected a ':' after hour",
+            Self::MinuteInvalid => "expected a minute between 0 and 59 (inclusive)",
+            Self::SecondInvalid => "expected a second between 0 and 59 (inclusive)",
+            Self::MinuteSeparatorExpected => "expected a ':' after minute",
+            Self::DecimalInvalid => {
+                "expected the dot and the decimal or the extra characters removed"
+            }
+        }
+        .fmt(f)
+    }
+}
+
+impl core::error::Error for TimeError {}
+
+/// Parse a [time] in shape of `hh:mm`, `hh:mm:ss` or `hh:mm:ss.rrrrr...`.
+///
+/// The following are guaranteed about the result:
+/// - Hour (0) is `0..=23` from the required `hh` component.
+/// - Minute (1) is `0..=59` from the required `mm` component.
+/// - Second (2) is `0..=59` from the optional `ss` (defaults to `0` if not given).
+/// - Decimal (3) is a valid decimal number from the optional `.rrr...` (defaults to `&[]` if not
+///   given).
+///
+/// [time]:
+/// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#parse-a-time-component
+pub const fn time_prefix(s: &[u8]) -> Result<(u8, u8, u8, &[u8]), TimeError> {
+    use TimeError::*;
+
+    if s.len() < 5 {
+        return Err(InputLen);
+    }
+
+    // to preverse the order of operations and preventing the parser to parse so many leading zeros
+    // the range is limited
+    // parse hh
+    let (hh, s) = s.split_first_chunk::<2>().unwrap();
+    let Some(hour @ ..=23) = num::u8::decode(hh, 10) else {
+        return Err(HourInvalid);
+    };
+    // parse hh:
+    let (&[c], s) = s.split_first_chunk().unwrap();
+    if c != b':' {
+        return Err(HourSeparatorExpected);
+    }
+
+    // parse hh:mm
+    let (mm, s) = s.split_first_chunk::<2>().unwrap();
+    let Some(minute @ ..=59) = num::u8::decode(mm, 10) else {
+        return Err(MinuteInvalid);
+    };
+
+    // parse hh:mm(:ss.rrrrr...)?
+    let (second, decimal): (u8, &[u8]) = match s.split_first_chunk() {
+        Some((&[b':'], s)) => {
+            // parse hh:mm:ss
+            let (ss, s) = s.split_first_chunk::<2>().unwrap();
+            let Some(second @ ..=59) = num::u8::decode(ss, 10) else {
+                return Err(SecondInvalid);
+            };
+            let decimal = match s.split_first_chunk() {
+                Some((&[b'.'], s)) if !s.is_empty() => {
+                    let Some(zeros_len) = num::span(s, 10) else {
+                        return Err(DecimalInvalid);
+                    };
+                    i!(s[zeros_len..])
+                }
+                Some(_) => return Err(DecimalInvalid),
+                None => &[],
+            };
+            (second, decimal)
+        }
+        Some(_) => return Err(MinuteSeparatorExpected),
+        // accept hh:mm
+        None => (0, &[]),
+    };
+    Ok((hour, minute, second, decimal))
+}
+
 /// Parse a year with optional zero prefix of any length larger than 0 and with at least 4 digits.
 ///
 /// This is the common year parser between different types of dates. The rest of the string is
