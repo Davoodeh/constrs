@@ -95,7 +95,7 @@ impl Unit {
 
 /// Helpers for hosts.
 pub mod host {
-    use crate::ip;
+    use crate::{ip, slice::i};
 
     use super::{Unit, is_codepoint as is_url_codepoint};
 
@@ -125,7 +125,7 @@ pub mod host {
 
         let mut i = 0;
         while i < s.len() {
-            match Unit::prefix(s.split_at(i).1) {
+            match Unit::prefix(i!(s[..i])) {
                 Some(v @ Unit::Codepoint(c)) if is_codepoint(c) => i += v.len(),
                 Some(v) => i += v.len(),
                 _ => return i,
@@ -166,7 +166,7 @@ pub mod host {
 
 /// Helpers for URL paths (e.g. `scheme://somehost/path/and/the/rest/of/it`).
 pub mod path {
-    use crate::slice;
+    use crate::slice::{self, i};
 
     use super::Unit;
 
@@ -277,7 +277,7 @@ pub mod path {
     pub const fn any_prefix_len(s: &[u8]) -> usize {
         let mut pointer = 0;
         while pointer < s.len() {
-            match Unit::prefix(s.split_at(pointer).1) {
+            match Unit::prefix(i!(s[pointer..])) {
                 Some(Unit::Codepoint('?')) => break,
                 Some(v) => pointer += v.len(),
                 _ => break,

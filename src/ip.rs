@@ -4,7 +4,7 @@
 pub mod v4 {
     pub use core::net::Ipv4Addr as Addr;
 
-    use crate::{num, slice};
+    use crate::{num, slice::i};
 
     /// If true, the candidate must be parsed with the [`parse`] function.
     ///
@@ -68,7 +68,7 @@ pub mod v4 {
             None => return false,
         };
 
-        match number(slice::range_get(s, start, end)) {
+        match number(i!(s[start..end])) {
             Ok(_) => true,
             Err(NumberError::Empty) => false, // recoverable but explicitly not permitted
             Err(NumberError::NonDecimal(_, _)) | Err(NumberError::OutOfRange) => true,
@@ -315,7 +315,7 @@ pub mod v4 {
                 $radix:literal,
                 |$valid:ident $(: u8)?| $expr:expr $(,)?
             ) => {
-                match num::u8::decode(s.split_at($skip).1, $radix) {
+                match num::u8::decode(i!(s[($skip)..]), $radix) {
                     Some($valid) => $expr,
                     None => {
                         let mut i = $skip;
@@ -431,7 +431,7 @@ pub mod v4 {
                 // this error check allows for TooManyParts to be reported correctly even
                 // if sees problematic parts
                 if error.is_none() {
-                    match number(slice::range_get(s, piece_start, pointer)) {
+                    match number(i!(s[piece_start..pointer])) {
                         Ok(v) => address[piece_index] = v,
                         Err(e) => error = Some(Error::Number(piece_index, e)),
                     }
@@ -463,7 +463,7 @@ pub mod v4 {
 pub mod v6 {
     pub use core::net::Ipv6Addr as Addr;
 
-    use crate::slice;
+    use crate::slice::{self, i};
 
     /// Errors produced when [`parse`] is called on an invalid IPv6.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -766,7 +766,7 @@ pub mod v6 {
             return Some(Err(Error::Unclosed));
         };
 
-        Some(parse(slice::range_get(s, 1, s.len() - 1)))
+        Some(parse(i!(s[1..s.len() - 1])))
     }
 
     /// [`parse`] from the start of the string "[" until the first "]" and return the length.
@@ -783,7 +783,7 @@ pub mod v6 {
             }
         }
         Some(match slice::get(s, i) {
-            Some(&b']') => match parse(slice::range_get(s, 1, i - 1)) {
+            Some(&b']') => match parse(i!(s[i..i - 1])) {
                 Ok(v) => Ok((v, s.len())),
                 Err(e) => Err(e),
             },

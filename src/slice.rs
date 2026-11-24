@@ -1,5 +1,8 @@
 //! Holds helpers for a more unconditionally `const` slice operations.
 
+// NOTE macro exports are the last line of the module
+//      for internal use and before the macros are public, use them instead
+
 /// Get a slice element with a [`usize`] index, uncoditionally const (same as `&s[index]`).
 ///
 /// This aims to be a replacement for the [slice primitive `get` method] until it's const
@@ -424,4 +427,105 @@ macro_rules! prefix_matching_len {
     }};
 }
 
-pub(crate) use prefix_matching_len;
+/// Indexing helper just like `&s[I]`.
+///
+/// The start is limited to a single `TokenTree` which roughly means that the start of any range
+/// must be a single token-like (`a` or `1` not `a.len()`) unless wrapped in braces or parenthesis.
+///
+/// Holds two types of indexing:
+/// - `s[I]` like `s[1]`
+/// - `s[RANGE]` like `s[1..]`
+///
+/// Implements the ranges below:
+/// - `..` (RangeFull)
+/// - `a..` (RangeFrom)
+/// - `..b` (RangeTo)
+/// - `a..b` (Range)
+/// - `a..=b` (RangeInclusive)
+/// - `..=b` (RangeToInclusive)
+macro_rules! i {
+    ($s:tt[..]) => {
+        &$s
+    };
+
+    ($s:tt[$i:tt]) => {{
+        #[allow(unused_parens, unused_braces)]
+        {
+            &$s[$i]
+        }
+    }};
+
+    ($s:tt[$start:tt..]) => {{
+        let end = $s.len();
+        $crate::slice::i!($s[{ $start }..{ end }])
+    }};
+
+    ($s:tt[..$($end:tt)+]) => {
+        $crate::slice::i!($s[0..{ $($end)+ }])
+    };
+
+    ($s:tt[..=$($end:tt)+]) => {
+        $crate::slice::i!($s[0..={ $($end)+ }])
+    };
+
+    ($s:tt[$start:tt..$($end:tt)+]) => {{
+        #[allow(unused_parens, unused_braces)]
+        {
+            let start = $start;
+            let end = $($end)+;
+            $crate::slice::range_get($s, start, end)
+        }
+    }};
+
+    ($s:tt[$start:tt..=$($end:tt)+]) => {{
+        {
+            let start = $start;
+            let end = $($end)+;
+            $crate::slice::range_inclusive_get($s, start, end)
+        }
+    }};
+
+    (mut $s:tt[..]) => {
+        &mut $s
+    };
+
+    (mut $s:tt[$i:tt]) => {{
+        #[allow(unused_parens, unused_braces)]
+        {
+            &mut $s[$i]
+        }
+    }};
+
+    (mut $s:tt[$start:tt..]) => {{
+        let end = $s.len();
+        $crate::slice::i!(mut $s[{ $start }..{ end }])
+    }};
+
+    (mut $s:tt[..$($end:tt)+]) => {
+        $crate::slice::i!(mut $s[0..{ $($end)+ }])
+    };
+
+    (mut $s:tt[..=$($end:tt)+]) => {
+        $crate::slice::i!(mut $s[0..={ $($end)+ }])
+    };
+
+    (mut $s:tt[$start:tt..$($end:tt)+]) => {{
+        #[allow(unused_parens, unused_braces)]
+        {
+            let start = $start;
+            let end = $($end)+;
+            $crate::slice::range_get_mut($s, start, end)
+        }
+    }};
+
+    (mut $s:tt[$start:tt..=$($end:tt)+]) => {{
+        #[allow(unused_parens, unused_braces)]
+        {
+            let start = $start;
+            let end = $($end)+;
+            $crate::slice::range_inclusive_get_mut($s, start, end)
+        }
+    }};
+}
+
+pub(crate) use {i, prefix_matching_len};

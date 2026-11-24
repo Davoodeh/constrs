@@ -8,7 +8,7 @@
 //! [proleptic Gregorian date]:
 //! https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#proleptic-gregorian-date
 
-use crate::{num, slice};
+use crate::{num, slice::i};
 
 /// Parse a year with optional zero prefix of any length larger than 0 and with at least 4 digits.
 ///
@@ -25,7 +25,7 @@ pub const fn year_prefix(s: &[u8]) -> Option<(&[u8], usize)> {
         return None;
     }
     // skip zeros, then save the year
-    let year = slice::range_get(s, year_zeros_end, year_len);
+    let year = i!(s[year_zeros_end..year_len]);
     Some((year, year_len))
 }
 
@@ -284,7 +284,7 @@ macro_rules! year_week_prefix {
         if s[year_len] != b'-' || s[year_len + 1] != b'W' {
             return Err(YearWeekError::DashWExpected);
         }
-        let s = s.split_at(year_len + 2).1;
+        let s = i!(s[(year_len + 2)..]);
 
         // exactly two digits for the month is required.
         if s.len() < 2 {
@@ -292,7 +292,7 @@ macro_rules! year_week_prefix {
         }
 
         // do not go till the end of the text, only the next two digits matter
-        let Some(week @ 1..=53) = num::u8::decode(s.split_at(2).0, 10) else {
+        let Some(week @ 1..=53) = num::u8::decode(i!(s[..2]), 10) else {
             return Err(YearWeekError::WeekInvalid);
         };
         if week == 53 && !is_weeks_53(non_zero_year) {
@@ -403,7 +403,7 @@ macro_rules! year_month_prefix {
         if s[year_len] != b'-' {
             return Err(YearMonthError::DashExpected);
         }
-        let s = s.split_at(year_len + 1).1;
+        let s = i!(s[(year_len + 1)..]);
 
         // exactly two digits for the month is required.
         if s.len() < 2 {
@@ -411,7 +411,7 @@ macro_rules! year_month_prefix {
         }
 
         // do not go till the end of the text, only the next two digits matter
-        let Some(month @ 1..=12) = num::u8::decode(s.split_at(2).0, 10) else {
+        let Some(month @ 1..=12) = num::u8::decode(i!(s[..2]), 10) else {
             return Err(YearMonthError::MonthInvalid);
         };
 
@@ -549,7 +549,7 @@ macro_rules! prefix {
             return Err(DateError::InvalidDay);
         }
 
-        match num::u8::decode(slice::range_get(s, len + 1, len + 3), 10) {
+        match num::u8::decode(i!(s[(len + 1)..(len + 3)]), 10) {
             Some(day) if day <= days_in_month(year, month) => Ok((year, month, day, len + 3)),
             _ => Err(DateError::InvalidDay),
         }

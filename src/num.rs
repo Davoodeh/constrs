@@ -13,7 +13,7 @@
 // TODO add a trait extension that adds all the functionality here to `char`, `[u8]` and related
 // TODO impl encode for types other than u8
 
-use crate::slice;
+use crate::slice::{self, i};
 
 const fn panic_radix() -> ! {
     // assertion copied from [`char::to_digit`] source
@@ -194,7 +194,7 @@ pub const fn zero_prefix_len(s: &[u8]) -> usize {
 /// ```
 pub const fn prefix_span(s: &[u8], radix: u8) -> (usize, usize) {
     let zeros = zero_prefix_len(s);
-    let non_zeros = prefix_len(s.split_at(zeros).1, radix);
+    let non_zeros = prefix_len(i!(s[zeros..]), radix);
     (zeros, zeros + non_zeros)
 }
 
@@ -293,7 +293,7 @@ macro_rules! strict {
         if strict!(_prefix: $($prefix)?, $s.len(), required_digits) {
             return None;
         }
-        decode($s.split_at(required_digits).0, $radix)
+        decode(i!($s[..required_digits]), $radix)
     }};
     (_prefix: prefix, $len:expr, $digits:expr) => { $len < $digits };
     (_prefix: , $len:expr, $digits:expr) => { $len != $digits };
@@ -553,7 +553,7 @@ pub mod u8 {
                         $value as usize + 1
                     });
 
-                    slice::fill_copy($buf.split_at_mut(end).0, b'0');
+                    slice::fill_copy(i!(mut $buf[..end]), b'0');
                     end
                 }
                 2..16 => {

@@ -7,6 +7,8 @@
 //!
 //! [`num`]: crate::num.
 
+use crate::slice::i;
+
 /// An iterator over outputs of [`prefix_at`].
 #[derive(Debug, Clone)]
 pub struct Chars<'a> {
@@ -94,7 +96,7 @@ impl<'a> Chars<'a> {
     /// Return the string from the start as far as it is valid.
     pub const fn prefix(mut self) -> &'a str {
         while self.next().is_some() {}
-        unsafe { core::str::from_utf8_unchecked(self.data.split_at(self.pointer).0) }
+        unsafe { core::str::from_utf8_unchecked(i!((self.data)[..self.pointer])) }
     }
 }
 
@@ -225,7 +227,8 @@ pub const fn prefix_len(s: &[u8]) -> usize {
 /// prefix- is needed), use [`str::from_utf8`].
 pub const fn str_prefix(s: &[u8]) -> &str {
     // SAFETY: the validity is ensured
-    unsafe { core::str::from_utf8_unchecked(s.split_at(prefix_len(s)).0) }
+    let slice = i!(s[..prefix_len(s)]);
+    unsafe { core::str::from_utf8_unchecked(slice) }
 }
 
 /// Check if a [`u32`] is a ["noncharacter"] or not.

@@ -3,7 +3,7 @@
 //! The aim of this module is to provide helpers for the following exact specification:
 //! <https://url.spec.whatwg.org/commit-snapshots/8e14777cfa145b08a9fb735fe580ec0c366564c3/#percent-decode>
 
-use crate::num;
+use crate::{num, slice::i};
 
 /// Length of a single percent encoding string in bytes.
 const BYTES: usize = 3;
@@ -18,9 +18,9 @@ const BYTES: usize = 3;
 /// If the buffer is not at least 3 in length, panics.
 pub const fn encode(value: u8, buf: &mut [u8]) -> &str {
     buf[0] = b'%';
-    num::u8::encode_strict(value, 16, buf.split_at_mut(1).1);
+    num::u8::encode_strict(value, 16, i!(mut buf[1..]));
     // SAFETY: it's just a % and two hex characters, definitely valid.
-    unsafe { core::str::from_utf8_unchecked(buf.split_at(3).0) }
+    unsafe { core::str::from_utf8_unchecked(i!(buf[..3])) }
 }
 
 /// Decode the percent encoded value at the beginning of the text.
@@ -30,7 +30,7 @@ pub const fn prefix(s: &[u8]) -> Option<u8> {
     if s.len() < BYTES || s[0] != b'%' {
         return None;
     }
-    num::u8::strict(s.split_at(1).1.split_at(2).0, 16) // &s[1..3]
+    num::u8::strict(i!(s[1..3]), 16)
 }
 
 /// Search for the first substring that matches `%[0-9a-fA-F]{2}` and also decode it.
@@ -38,7 +38,7 @@ pub const fn next(s: &[u8]) -> Option<(usize, u8)> {
     let mut i = 0;
     // the last values will not contain anything anyways so no point in checking
     while i < s.len() - BYTES {
-        if let Some(v) = prefix(s.split_at(i).1) {
+        if let Some(v) = prefix(i!(s[i..])) {
             return Some((i, v));
         }
         i += 1;
@@ -59,7 +59,7 @@ macro_rules! parse {
                 overflow = true;
                 break;
             }
-            match prefix($s.split_at(s_i).1) {
+            match prefix(i!($s[s_i..])) {
                 Some(v) => {
                     $buf[buf_i] = v;
                     s_i += BYTES;

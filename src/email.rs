@@ -1,6 +1,6 @@
 //! Holds WHATWG email parsers in const time without allocation.
 
-use crate::slice;
+use crate::slice::{self, i};
 
 /// Regex of [WHATWG HTML, 4.10.5.1.5 Email State (`type=email`)] equal to [`is_email`].
 ///
@@ -174,7 +174,7 @@ pub const fn post_at_prefix_len(s: &[u8]) -> usize {
         if s.len() == len || s[len] != b'.' {
             return len;
         }
-        let new = label_prefix_len(s.split_at(len + 1).1);
+        let new = label_prefix_len(i!(s[(len + 1)..]));
         // nothing else is parsable, the end of valid values is reached
         if new == 0 {
             return len;
@@ -219,7 +219,7 @@ pub const fn email_prefix_len(s: &[u8]) -> usize {
     if including_at == 0 {
         return 0;
     }
-    let post_at = post_at_prefix_len(s.split_at(including_at).1);
+    let post_at = post_at_prefix_len(i!(s[including_at..]));
     if post_at == 0 {
         return 0;
     }
