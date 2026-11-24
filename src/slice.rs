@@ -247,3 +247,16 @@ pub const fn as_array<T, const N: usize>(s: &[T]) -> Option<&[T; N]> {
     }
     None
 }
+
+/// Copy a single item in all the element of a slice.
+///
+/// To fill with a value of [`Clone`], use the standard `slice::fill`.
+#[doc(alias("copy_from_item"))]
+pub const fn fill_copy<T: Copy>(s: &mut [T], v: T) {
+    // TODO with different feature flags, optimize this
+    let mut i = 0;
+    while i < s.len() {
+        s[i] = v;
+        i += 1;
+    }
+}

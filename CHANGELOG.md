@@ -10,6 +10,7 @@
 ## Add
 
 - `slice::as_array` which does as its standard counterpart.
+- `slice::fill_copy` function.
 - `num::*::min` and `num::*::max` for types implementing `core::cmp::Ord`
   (integers).
 - `num::span` function as a peer for `num::prefix_span`.

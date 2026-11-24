@@ -566,12 +566,9 @@ pub mod u8 {
                     } else {
                         $value as usize + 1
                     });
-                    let mut i = 0;
-                    while i < end {
-                        $buf[i] = b'0';
-                        i += 1;
-                    }
-                    i
+
+                    slice::fill_copy($buf.split_at_mut(end).0, b'0');
+                    end
                 }
                 2..16 => {
                     let mut buf_i = 0;
