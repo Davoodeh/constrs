@@ -42,7 +42,7 @@ hooks = [
     language = "system",
     entry = "cargo doc --no-deps",
     env = { RUSTDOCFLAGS = "-Dwarnings" },
-    files = { glob = ["src/**/*.rs", "**/Cargo.toml"] },
+    files = { glob = ["README.md", "src/**/*.rs", "**/Cargo.toml"] },
     pass_filenames = false,
   },
 ]
