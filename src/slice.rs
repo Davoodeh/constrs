@@ -35,18 +35,12 @@ pub const fn get_mut<T>(s: &mut [T], index: usize) -> Option<&mut T> {
 
 /// Get the first slice element, uncoditionally const (same as `&s[0]`).
 pub const fn first<T>(s: &[T]) -> Option<&T> {
-    if s.is_empty() {
-        return None;
-    }
-    Some(&s[0])
+    get(s, 0)
 }
 
 /// [`first`] but mutable (same as `&mut s[0]`).
 pub const fn first_mut<T>(s: &mut [T]) -> Option<&mut T> {
-    if s.is_empty() {
-        return None;
-    }
-    Some(&mut s[0])
+    get_mut(s, 0)
 }
 
 /// Get the last slice element, uncoditionally const (same as `&s[s.len() - 1]`).
