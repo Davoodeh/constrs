@@ -513,6 +513,21 @@ macro_rules! endian_fns {
     };
 }
 
+/// Impl `min` and `max` functions for given types.
+macro_rules! cmp_fns {
+    ($ty:ty) => {
+        /// Run [`core::cmp::Ord::max`] in the const context.
+        pub const fn max(a: $ty, b: $ty) -> $ty {
+            if a < b { b } else { a }
+        }
+
+        /// Run [`core::cmp::Ord::min`] in the const context.
+        pub const fn min(a: $ty, b: $ty) -> $ty {
+            if a < b { a } else { b }
+        }
+    };
+}
+
 /// Helpers for [`prim@u8`].
 pub mod u8 {
     use super::*;
@@ -826,6 +841,8 @@ pub mod u8 {
     }
 
     endian_fns!(u8);
+
+    cmp_fns!(u8);
 }
 
 /// Helpers for [`prim@i8`].
@@ -833,6 +850,8 @@ pub mod i8 {
     use super::*;
 
     endian_fns!(i8);
+
+    cmp_fns!(i8);
 }
 
 /// Helpers for [`prim@usize`].
@@ -862,6 +881,8 @@ pub mod usize {
     decode_fns!(usize);
 
     endian_fns!(usize);
+
+    cmp_fns!(usize);
 }
 
 /// Helpers for [`prim@isize`].
@@ -869,6 +890,8 @@ pub mod isize {
     use super::*;
 
     endian_fns!(isize);
+
+    cmp_fns!(isize);
 }
 
 /// Helpers for [`prim@u16`].
@@ -888,6 +911,8 @@ pub mod u16 {
     decode_fns!(u16);
 
     endian_fns!(u16);
+
+    cmp_fns!(u16);
 }
 
 /// Helpers for [`prim@i16`].
@@ -895,6 +920,8 @@ pub mod i16 {
     use super::*;
 
     endian_fns!(i16);
+
+    cmp_fns!(i16);
 }
 
 /// Helpers for [`prim@u32`].
@@ -910,6 +937,8 @@ pub mod u32 {
     decode_fns!(u32);
 
     endian_fns!(u32);
+
+    cmp_fns!(u32);
 }
 
 /// Helpers for [`prim@i32`].
@@ -917,6 +946,8 @@ pub mod i32 {
     use super::*;
 
     endian_fns!(i32);
+
+    cmp_fns!(i32);
 }
 
 /// Helpers for [`prim@u64`].
@@ -933,6 +964,8 @@ pub mod u64 {
     decode_fns!(u64);
 
     endian_fns!(u64);
+
+    cmp_fns!(u64);
 }
 
 /// Helpers for [`prim@i64`].
@@ -940,6 +973,8 @@ pub mod i64 {
     use super::*;
 
     endian_fns!(i64);
+
+    cmp_fns!(i64);
 }
 
 /// Helpers for [`prim@u128`].
@@ -956,6 +991,8 @@ pub mod u128 {
     decode_fns!(u128);
 
     endian_fns!(u128);
+
+    cmp_fns!(u128);
 }
 
 /// Helpers for [`prim@i128`].
@@ -963,16 +1000,23 @@ pub mod i128 {
     use super::*;
 
     endian_fns!(i128);
+
+    cmp_fns!(i128);
 }
 
 /// Helpers for [`prim@f32`].
+///
+/// Float do not implement [`core::cmp::Ord`] as others, hence there are not `min` or `max`
+/// functions here. Use the built-in functions of the primitive (e.g. [`f32::max`] and [`f32::min`])
+/// which are
+/// const.
 pub mod f32 {
     use super::*;
 
     endian_fns!(f32);
 }
 
-/// Helpers for [`prim@f64`].
+/// Helpers for [`prim@f64`] (similar to [`mod@f32`], see that for more details).
 pub mod f64 {
     use super::*;
 
