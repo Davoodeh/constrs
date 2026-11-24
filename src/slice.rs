@@ -5,6 +5,17 @@
 /// This aims to be a replacement for the [slice primitive `get` method] until it's const
 /// stable.
 ///
+/// # Examples
+///
+/// ```rust
+/// # use constrs::slice::get;
+/// let s = b"1234";
+/// assert_eq!(s.get(0), get(s, 0));
+/// assert_eq!(s.get(1), get(s, 1));
+/// assert_eq!(s.get(5), get(s, 5));
+/// assert_eq!(s.get(usize::MAX), get(s, usize::MAX));
+/// ```
+///
 /// [slice primitive `get` method]:
 /// https://doc.rust-lang.org/core/primitive.slice.html#method.get
 pub const fn get<T>(s: &[T], index: usize) -> Option<&T> {
