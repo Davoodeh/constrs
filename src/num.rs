@@ -163,26 +163,12 @@ pub const fn digit_unchecked(c: u8) -> u8 {
 /// assert_eq!(prefix_len(b"999999999999999999999999999999", 10), 30);
 /// ```
 pub const fn prefix_len(s: &[u8], radix: u8) -> usize {
-    let mut i = 0;
-    while i < s.len() {
-        if digit(s[i], radix).is_none() {
-            return i;
-        }
-        i += 1;
-    }
-    i
+    slice::prefix_matching_len!(s, |c| digit(*c, radix).is_some())
 }
 
 /// Return the length of the initial sequence of ASCII `'0'`.
 pub const fn zero_prefix_len(s: &[u8]) -> usize {
-    let mut i = 0;
-    while i < s.len() {
-        if s[i] != b'0' {
-            return i;
-        }
-        i += 1;
-    }
-    i
+    slice::prefix_matching_len!(s, |c| *c == b'0')
 }
 
 /// Return the end of the leading zeros and the end of the valid digits.

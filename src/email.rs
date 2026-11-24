@@ -50,15 +50,7 @@ pub const fn is_atext(byte: u8) -> bool {
 /// [valid email]:
 /// https://html.spec.whatwg.org/commit-snapshots/cd8ac6f1bbf86dd0bd09ef75d27dacaebe7b4c1d/#valid-e-mail-address
 pub const fn before_at_prefix_len(s: &[u8]) -> usize {
-    let mut i = 0;
-    // HACK(E0658, 1.88.0<): ifs can merge with `&&`
-    while let Some(&c) = slice::get(s, i) {
-        if !(c == b'.' || is_atext(c)) {
-            break;
-        }
-        i += 1;
-    }
-    i
+    slice::prefix_matching_len!(s, |c| *c == b'.' || is_atext(*c))
 }
 
 /// Get as far as `@` (inclusive) and return the length (valid range 2..).

@@ -335,3 +335,93 @@ pub const fn fill_copy<T: Copy>(s: &mut [T], v: T) {
         i += 1;
     }
 }
+
+/// Return the number of items for which the virtual closure over each item returns true.
+///
+/// See [`prefix_matching_len`] for example which is an alias for `prefix_matching_len($s, |i| i ==
+/// key)` (count the number of items all the while the given key is not seen).
+///
+/// [`prefix_matching_len`]: crate::prefix_matching_len
+///
+/// This is roughly equal to something like the following without the traits and for const context:
+///
+// NOTE not public so the test must be ignored
+/// ```rust,ignore
+/// # use std::ops::Index;
+/// # use constrs::prefix_matching_len;
+/// /// An alternative to `Iterator::iter(x).find(|v| v == key)`.
+/// type Idx = /* {integer} and if signed {integer}, only 0 and upwards are checked. */
+/// # usize;
+/// # trait HasLen { fn len(&self) -> usize; }
+/// # impl<T> HasLen for [T] { fn len(&self) -> usize { <[T]>::len(self) } }
+/// trait Prefix: Index<Idx> + HasLen
+/// where
+///     <Self as Index<Idx>>::Output: PartialEq + Sized
+/// {
+///     /// Increase the index while `f` is true (return the first index of first not matching).
+///     ///
+///     /// If `self.len()` is the same as the results, implies all the values are exactly the same
+///     /// as `key`.
+///     fn prefix_matching_len(&self, f: impl Fn(&<Self as Index<Idx>>::Output) -> bool) -> usize {
+///         let mut i = 0;
+///         while i < self.len() {
+///             if !f(&self[i]) {
+///                 return i;
+///             }
+///             i += 1;
+///         }
+///         i
+///     }
+/// }
+///
+/// // trivial implementation for everything can be managed to be implemented
+/// impl<T: Index<Idx> + HasLen + ?Sized> Prefix for T
+/// where
+///     <T as Index<Idx>>::Output: PartialEq + Sized
+/// {}
+///
+/// let s = &[1, 1, 2, 2, 3, 3];
+///
+/// // the number of elements at the start matching `3` (the starting items are not `3`)
+/// assert_eq!(s.prefix_matching_len(|v| *v == 3), 0);
+/// assert_eq!(s.prefix_matching_len(|v| *v == 3), prefix_matching_len!(s, |v| *v == 3));
+/// // the number of elements at the start matching `1` (the start items are two `1`s)
+/// assert_eq!(s.prefix_matching_len(|v| *v < 3), 4);
+/// assert_eq!(s.prefix_matching_len(|v| *v < 3), prefix_matching_len!(s, |v| *v < 3));
+/// ```
+// TODO make the `Prefix` traits from the [`prefix_matching_len`] examples once `HasLen` is managed
+// TODO move to its own macro crate alongside "index" macro to have them exported from here and
+//      only here. This is to prevent an unecessary move.
+macro_rules! prefix_matching_len {
+    // TODO support |&&&&&...v| syntax
+    ($s:expr, |$v:ident $(: &$ty:ty)?| $expr:expr $(,)?) => {
+        $crate::slice::prefix_matching_len!($s, |$v $(: $ty)?| -> bool { $expr })
+    };
+
+    ($s:expr, |($i:tt, $v:ident) $(: ($ti:tt, &$ty:ty))?| $expr:expr $(,)?) => {
+        $crate::slice::prefix_matching_len!($s, |($i, $v) $(: ($ti, $ty))?| -> bool { $expr })
+    };
+
+    ($s:expr, |$v:ident $(: &$ty:ty)?| $(-> bool)? { $expr:expr } $(,)?) => {{
+        $crate::slice::prefix_matching_len!($s, |(_, $v) $(: (_, $ty))?| -> bool { $expr })
+    }};
+
+    ($s:expr, |($i:tt, $v:ident) $(: ($ti:tt, &$ty:ty))?| $(-> bool)? { $expr:expr } $(,)?) => {{
+        let s = $s;
+        // have the index be mutable and an unlikely identifier
+        let mut ___zpqlxmi123456789___ $(: $ti)? = 0;
+        while ___zpqlxmi123456789___ < s.len() {
+            // pass the index as immutable to a variable accessable by the expr to prevent
+            // modification
+            let $i = ___zpqlxmi123456789___;
+            let $v $(: &$ty)? = &s[___zpqlxmi123456789___];
+            if !($expr) {
+                break;
+            }
+            ___zpqlxmi123456789___ += 1;
+        }
+        ___zpqlxmi123456789___
+    }};
+}
+
+pub(crate) use prefix_matching_len;
