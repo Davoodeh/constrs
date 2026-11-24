@@ -1,6 +1,6 @@
 //! Holds helpers for a more unconditionally `const` slice operations.
 
-/// Get a slice element with a [`usize`] index, uncoditionally const.
+/// Get a slice element with a [`usize`] index, uncoditionally const (same as `&s[index]`).
 ///
 /// This aims to be a replacement for the [slice primitive `get` method] until it's const
 /// stable.
@@ -25,13 +25,7 @@ pub const fn get<T>(s: &[T], index: usize) -> Option<&T> {
     None
 }
 
-/// Get a slice element with a [`usize`] index, uncoditionally const (mutable).
-///
-/// This aims to be a replacement for the [slice primitive `get` method] until it's const
-/// stable.
-///
-/// [slice primitive `get` method]:
-/// https://doc.rust-lang.org/core/primitive.slice.html#method.get
+/// [`get`] but mutable (same as `&mut s[index]`).
 pub const fn get_mut<T>(s: &mut [T], index: usize) -> Option<&mut T> {
     if index < s.len() {
         return Some(&mut s[index]);
@@ -39,7 +33,7 @@ pub const fn get_mut<T>(s: &mut [T], index: usize) -> Option<&mut T> {
     None
 }
 
-/// Get the first slice element, uncoditionally const.
+/// Get the first slice element, uncoditionally const (same as `&s[0]`).
 pub const fn first<T>(s: &[T]) -> Option<&T> {
     if s.is_empty() {
         return None;
@@ -47,7 +41,7 @@ pub const fn first<T>(s: &[T]) -> Option<&T> {
     Some(&s[0])
 }
 
-/// Get the first slice element, uncoditionally const (mutable).
+/// [`first`] but mutable (same as `&mut s[0]`).
 pub const fn first_mut<T>(s: &mut [T]) -> Option<&mut T> {
     if s.is_empty() {
         return None;
@@ -55,7 +49,7 @@ pub const fn first_mut<T>(s: &mut [T]) -> Option<&mut T> {
     Some(&mut s[0])
 }
 
-/// Get the last slice element, uncoditionally const.
+/// Get the last slice element, uncoditionally const (same as `&s[s.len() - 1]`).
 pub const fn last<T>(s: &[T]) -> Option<&T> {
     if s.is_empty() {
         return None;
@@ -63,7 +57,7 @@ pub const fn last<T>(s: &[T]) -> Option<&T> {
     Some(&s[s.len() - 1])
 }
 
-/// Get the last slice element, uncoditionally const (mutable).
+/// [`last`] but mutable (same as `&mut s[s.len() - 1]`).
 pub const fn last_mut<T>(s: &mut [T]) -> Option<&mut T> {
     if s.is_empty() {
         return None;
@@ -116,7 +110,7 @@ pub const fn range_get_mut<T>(s: &mut [T], start: usize, end: usize) -> &mut [T]
     }
 }
 
-/// [`range_get`] but not panicking.
+/// [`range_get`] but not panicking (same as `&s[start..end]`).
 pub const fn range_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&[T]> {
     if start <= end && end <= s.len() {
         // SAFETY: Checked `0 <= start <= end <= len`
@@ -199,7 +193,7 @@ pub const fn range_inclusive_get_mut<T>(s: &mut [T], start: usize, end: usize) -
     }
 }
 
-/// [`range_inclusive_get`] but not panicking.
+/// [`range_inclusive_get`] but not panicking (same as `&mut s[start..=end]`).
 pub const fn range_inclusive_get_checked<T>(s: &[T], start: usize, end: usize) -> Option<&[T]> {
     // `end < s.len()` strictly smaller so `end + 1` can happen
     let Some(end) = end.checked_add(1) else {
